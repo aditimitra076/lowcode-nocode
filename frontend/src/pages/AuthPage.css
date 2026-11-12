@@ -1,0 +1,786 @@
+/* VisualForge Studio - AuthPage Stitch Screen Styling
+   Calibrated to exact 451x1024 Stitch screen ratio and slender symbol proportions
+*/
+
+/* Icon Size Specifications - delicate & refined */
+.vf-icon-cube {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.vf-icon-terminal {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.vf-icon-tab {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.vf-icon-input {
+  width: 13.5px;
+  height: 13.5px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.vf-icon-eye {
+  width: 13.5px;
+  height: 13.5px;
+  display: block;
+}
+
+.vf-icon-btn {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.vf-icon-github {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.vf-icon-shield {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.vf-icon-store {
+  width: 13.5px;
+  height: 13.5px;
+  display: block;
+}
+
+.vf-icon-arrow {
+  width: 11px;
+  height: 11px;
+  display: block;
+}
+
+.vf-icon-alert {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.vf-icon-check {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.vf-icon-close {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+/* Page Wrapper */
+.vf-auth-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #0b0f17;
+  background-image: 
+    radial-gradient(circle at 50% 12%, rgba(99, 102, 241, 0.10) 0%, rgba(11, 15, 23, 0) 55%),
+    radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.04) 0%, rgba(11, 15, 23, 0) 50%);
+  color: #f8fafc;
+  padding: 24px 14px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-y: auto;
+}
+
+/* Container matching the 451px stitch image ratio */
+.vf-auth-container {
+  width: 100%;
+  max-width: 412px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: auto 0;
+}
+
+/* Header Area */
+.vf-auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.vf-logo-badge-container {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.vf-logo-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #182030 0%, #121824 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.vf-status-indicator-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #10b981;
+  border: 2px solid #0b0f17;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+  animation: vf-pulse-dot 2.5s infinite ease-in-out;
+}
+
+.vf-app-title {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  margin: 0 0 3px 0;
+  line-height: 1.2;
+}
+
+.vf-app-subtitle {
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin: 0 0 9px 0;
+  font-weight: 400;
+}
+
+.vf-engine-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #121824;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 3px 11px;
+  font-size: 9.5px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vf-pill-green-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 5px rgba(16, 185, 129, 0.9);
+}
+
+/* Top Feature Box: Architectural Pipeline */
+.vf-feature-card {
+  background: #121824;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 13px;
+  padding: 11px 14px;
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  box-shadow: 0 3px 12px -2px rgba(0, 0, 0, 0.25);
+}
+
+.vf-feature-icon-badge {
+  flex-shrink: 0;
+  width: 27px;
+  height: 27px;
+  border-radius: 7px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  margin-top: 1px;
+}
+
+.vf-feature-content {
+  flex: 1;
+}
+
+.vf-feature-header-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 3px;
+}
+
+.vf-feature-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.vf-version-tag {
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 9.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.vf-feature-desc {
+  font-size: 11.5px;
+  line-height: 1.42;
+  color: #8692a6;
+  margin: 0;
+}
+
+/* Main Auth Card */
+.vf-auth-card {
+  background: #121824;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* Tabs switcher */
+.vf-tabs-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #0a0e16;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  padding: 2.5px;
+  gap: 3px;
+}
+
+.vf-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #78869a;
+  transition: all 0.18s ease-in-out;
+}
+
+.vf-tab-btn:hover {
+  color: #ffffff;
+}
+
+.vf-tab-btn.active {
+  background: #1e2638;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Form layout */
+.vf-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vf-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.vf-field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vf-field-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #717d91;
+  text-transform: uppercase;
+}
+
+.vf-field-tag {
+  font-size: 9.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #505c6e;
+}
+
+.vf-forgot-link {
+  font-size: 11px;
+  color: #818cf8;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.vf-forgot-link:hover {
+  color: #a5b4fc;
+  text-decoration: underline;
+}
+
+.vf-input-wrapper {
+  background: #090d15;
+  border: 1px solid #1c2436;
+  border-radius: 8px;
+  padding: 8.5px 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+}
+
+.vf-input-wrapper:focus-within {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 1px #6366f1, 0 0 12px rgba(99, 102, 241, 0.18);
+  background: #0a0f19;
+}
+
+.vf-input-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.vf-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f8fafc;
+  font-size: 12.5px;
+  font-family: inherit;
+  padding: 0;
+}
+
+.vf-input::placeholder {
+  color: #475569;
+}
+
+.vf-password-toggle-btn {
+  background: none;
+  border: none;
+  padding: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.vf-password-toggle-btn:hover {
+  color: #94a3b8;
+}
+
+/* Primary Button */
+.vf-primary-btn {
+  background: #6366f1;
+  border: none;
+  border-radius: 8px;
+  padding: 9.5px 14px;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: 0 3px 12px rgba(99, 102, 241, 0.35);
+  transition: all 0.18s ease-in-out;
+  margin-top: 2px;
+}
+
+.vf-primary-btn:hover:not(:disabled) {
+  background: #5457e5;
+  box-shadow: 0 5px 16px rgba(99, 102, 241, 0.45);
+  transform: translateY(-1px);
+}
+
+.vf-primary-btn:active:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(0);
+}
+
+.vf-primary-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.vf-btn-req-tag {
+  color: #c7d2fe;
+  font-weight: 500;
+  font-size: 11.5px;
+  opacity: 0.9;
+}
+
+/* Divider: OR FEDERATE */
+.vf-divider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 1px 0;
+}
+
+.vf-divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.vf-divider-text {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #525f73;
+  text-transform: uppercase;
+}
+
+/* GitHub Federation Button */
+.vf-secondary-btn {
+  background: #151b27;
+  border: 1px solid #20283a;
+  border-radius: 8px;
+  padding: 8.5px 12px;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+}
+
+.vf-secondary-btn:hover {
+  background: #1b2333;
+  border-color: #2b364d;
+  color: #ffffff;
+}
+
+/* Security Note: JWT */
+.vf-security-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.35;
+  padding: 0 4px;
+}
+
+.vf-security-note strong {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+/* Bottom Card: Explore Visual Templates */
+.vf-templates-card {
+  background: #121824;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 13px;
+  padding: 11px 14px;
+  box-shadow: 0 3px 12px -2px rgba(0, 0, 0, 0.25);
+}
+
+.vf-templates-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.vf-templates-title-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.vf-templates-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.vf-no-auth-badge {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #10b981;
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+}
+
+.vf-templates-desc {
+  font-size: 11.5px;
+  line-height: 1.42;
+  color: #8692a6;
+  margin: 0 0 9px 0;
+}
+
+.vf-templates-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #38bdf8;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, gap 0.15s ease;
+}
+
+.vf-templates-link:hover {
+  color: #7dd3fc;
+  gap: 8px;
+  text-decoration: underline;
+}
+
+/* Footer Area */
+.vf-auth-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.vf-footer-stack {
+  font-size: 10.5px;
+  color: #525f73;
+}
+
+.vf-footer-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #7d8b9e;
+}
+
+/* Alert Notification Boxes */
+.vf-alert-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  animation: vf-fade-in 0.2s ease-out;
+}
+
+.vf-alert-error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.vf-alert-success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+.vf-alert-info {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #c7d2fe;
+}
+
+.vf-alert-close-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: currentColor;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.vf-alert-close-btn:hover {
+  opacity: 1;
+}
+
+/* Modal Popup */
+.vf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+  animation: vf-fade-in 0.15s ease-out;
+}
+
+.vf-modal-card {
+  width: 100%;
+  max-width: 380px;
+  background: #121824;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+.vf-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vf-modal-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.vf-modal-body {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.vf-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Signed-in preview banner */
+.vf-session-banner {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #cbd5e1;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vf-session-btn {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #c7d2fe;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.vf-session-btn:hover {
+  background: rgba(99, 102, 241, 0.35);
+  color: #ffffff;
+}
+
+/* Animations */
+@keyframes vf-pulse-dot {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(16, 185, 129, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 1);
+    transform: scale(1.08);
+  }
+}
+
+@keyframes vf-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsiveness across views */
+@media (max-width: 440px) {
+  .vf-auth-wrapper {
+    padding: 16px 10px;
+    align-items: flex-start;
+  }
+  .vf-auth-container {
+    max-width: 100%;
+    gap: 10px;
+  }
+  .vf-auth-card {
+    padding: 14px 14px;
+    gap: 11px;
+  }
+  .vf-app-title {
+    font-size: 19px;
+  }
+  .vf-app-subtitle {
+    font-size: 11.5px;
+  }
+}
+
+@media (min-height: 850px) {
+  .vf-auth-wrapper {
+    align-items: center;
+  }
+}
+
+@media (max-height: 700px) {
+  .vf-auth-wrapper {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+}

@@ -17,7 +17,7 @@ function publicUser(user) {
 }
 
 function createToken(user) {
-  return jwt.sign({ sub: user.id }, process.env.JWT_SECRET, {
+  return jwt.sign({ sub: user.id }, process.env.JWT_SECRET || 'vf-dev-secret-key-32characters-minimum', {
     expiresIn: process.env.JWT_EXPIRES_IN || '1d',
   })
 }

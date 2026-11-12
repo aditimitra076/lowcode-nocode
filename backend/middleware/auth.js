@@ -12,7 +12,7 @@ export default async function requireAuth(req, res, next) {
 
   let payload
   try {
-    payload = jwt.verify(match[1], process.env.JWT_SECRET)
+    payload = jwt.verify(match[1], process.env.JWT_SECRET || 'vf-dev-secret-key-32characters-minimum')
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({
