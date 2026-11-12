@@ -256,6 +256,34 @@
   gap: 18px;
 }
 
+.vf-project-empty {
+  grid-column: 1 / -1;
+  padding: 30px 24px;
+  text-align: center;
+  border: 1px dashed var(--vf-border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--vf-text-muted);
+  font-size: 13px;
+}
+
+.vf-project-empty h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--vf-text);
+}
+
+.vf-project-empty p {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+}
+
+.vf-project-empty.is-error {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.06);
+}
+
 .vf-project-card {
   background: #121824;
   border: 1px solid rgba(255, 255, 255, 0.08);

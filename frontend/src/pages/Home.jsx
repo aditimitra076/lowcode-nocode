@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CubeIcon,
@@ -7,35 +7,57 @@ import {
   StoreIcon,
 } from '../components/ui/Icons';
 import { getStoredUser, clearSession } from '../api/authApi';
+import { fetchProjects } from '../api/projectApi';
 import './Home.css';
+
+function formatUpdatedAt(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (date.toDateString() === now.toDateString()) return `Today at ${time}`;
+  if (date.toDateString() === yesterday.toDateString()) return `Yesterday at ${time}`;
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 export default function Home() {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => getStoredUser());
+  // null means "not loaded yet", so loading is derived instead of set in an effect.
+  const [projects, setProjects] = useState(null);
+  const [projectsError, setProjectsError] = useState(null);
 
   const handleLogout = () => {
     clearSession();
     setUser(null);
+    setProjects(null);
+    setProjectsError(null);
   };
 
-  const savedProjects = [
-    {
-      id: 'proj-101',
-      name: 'Customer Success Ticket System',
-      description: 'Internal support ticket management with MongoDB CRUD APIs and email notifications.',
-      lastUpdated: 'Today at 2:15 PM',
-      pages: 4,
-      tables: 2,
-    },
-    {
-      id: 'proj-102',
-      name: 'Startup Investor Presentation Portal',
-      description: 'Landing page with responsive desktop/mobile view and investor waitlist form.',
-      lastUpdated: 'Yesterday at 6:40 PM',
-      pages: 2,
-      tables: 1,
-    },
-  ];
+  useEffect(() => {
+    if (!user) return undefined;
+
+    let cancelled = false;
+
+    fetchProjects().then((result) => {
+      if (cancelled) return;
+      if (result.ok) {
+        setProjects(result.data.projects || []);
+      } else {
+        setProjects([]);
+        setProjectsError(result.message);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <div className="vf-home-wrapper">
@@ -103,13 +125,36 @@ export default function Home() {
                 type="button"
                 className="vf-nav-primary-btn"
                 style={{ padding: '9px 16px', fontSize: '13px' }}
+                onClick={() => navigate('/builder')}
               >
                 + New Project (FR-05)
               </button>
             </div>
 
             <div className="vf-projects-grid">
-              {savedProjects.map((proj) => (
+              {projects === null || projectsError || projects.length === 0 ? (
+                <div className={`vf-project-empty${projectsError ? ' is-error' : ''}`}>
+                  {projects === null ? (
+                    'Loading projects…'
+                  ) : projectsError ? (
+                    projectsError
+                  ) : (
+                    <>
+                      <h3>No projects yet</h3>
+                      <p>Create your first project to start designing pages in the builder.</p>
+                      <button
+                        type="button"
+                        className="vf-nav-primary-btn"
+                        style={{ padding: '8px 14px', fontSize: '12.5px' }}
+                        onClick={() => navigate('/builder')}
+                      >
+                        + New Project (FR-05)
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                projects.map((proj) => (
                 <div key={proj.id} className="vf-project-card">
                   <div>
                     <div
@@ -133,7 +178,7 @@ export default function Home() {
                         Saved Project (FR-04)
                       </span>
                       <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        {proj.lastUpdated}
+                        {formatUpdatedAt(proj.updatedAt)}
                       </span>
                     </div>
                     <h3
@@ -146,16 +191,6 @@ export default function Home() {
                     >
                       {proj.name}
                     </h3>
-                    <p
-                      style={{
-                        fontSize: '12.5px',
-                        color: '#8692a6',
-                        lineHeight: 1.45,
-                        margin: '0 0 14px 0',
-                      }}
-                    >
-                      {proj.description}
-                    </p>
                   </div>
 
                   <div
@@ -169,18 +204,22 @@ export default function Home() {
                     }}
                   >
                     <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                      {proj.pages} Pages • {proj.tables} BaaS Tables
+                      {proj.pageCount} Pages • {proj.componentCount} Components
                     </span>
                     <button
                       type="button"
                       className="vf-nav-link-btn"
                       style={{ padding: '5px 10px', fontSize: '11.5px' }}
+                      onClick={() =>
+                        navigate(`/builder/${proj.id}`, { state: { projectName: proj.name } })
+                      }
                     >
                       Open in Builder (FR-07)
                     </button>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         ) : (

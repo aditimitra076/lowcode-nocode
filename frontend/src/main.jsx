@@ -7,6 +7,7 @@ import Home from './pages/Home.jsx';
 import NotFound from './pages/NotFound.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import Marketplace from './pages/Marketplace.jsx';
+import Builder from './pages/Builder.jsx';
 
 // Browser Router
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
@@ -48,6 +49,14 @@ const router = createBrowserRouter([
   {
     path: '/dashboard',
     element: <Home />,
+  },
+  {
+    path: '/builder',
+    element: <Builder />,
+  },
+  {
+    path: '/builder/:projectId',
+    element: <Builder />,
   },
   {
     path: '*',
