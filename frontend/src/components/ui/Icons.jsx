@@ -304,3 +304,244 @@ export function CloseIcon({ className = "vf-icon-close", color = "currentColor" 
     </svg>
   );
 }
+
+export function MailIcon({ className = "vf-icon-contact", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7L12 13L21 7" />
+    </svg>
+  );
+}
+
+export function PhoneIcon({ className = "vf-icon-contact", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 16.92V20C22 20.55 21.55 21 21 21C11.61 20.93 3.07 12.39 3 3C3 2.45 3.45 2 4 2H7.09C7.59 2 8 2.37 8.07 2.86L8.68 6.14C8.75 6.63 8.44 7.09 7.97 7.26L5.8 8C7.24 11.1 10.9 14.76 14 16.2L14.74 14.03C14.91 13.56 15.37 13.25 15.86 13.32L19.14 13.93C19.63 14 20 14.41 20 14.91L22 16.92Z" />
+    </svg>
+  );
+}
+
+export function GlobeIcon({ className = "vf-icon-contact", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12H21" />
+      <path d="M12 3C14.5 5.5 15.5 8.5 15.5 12C15.5 15.5 14.5 18.5 12 21C9.5 18.5 8.5 15.5 8.5 12C8.5 8.5 9.5 5.5 12 3Z" />
+    </svg>
+  );
+}
+
+export function MapPinIcon({ className = "vf-icon-contact", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 10C20 16 12 21 12 21C12 21 4 16 4 10C4 6.13 7.58 3 12 3C16.42 3 20 6.13 20 10Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+export function LinkedinIcon({ className = "vf-icon-contact", color = "currentColor" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill={color}>
+      <path d="M20.45 20.45H16.9V14.88C16.9 13.55 16.87 11.84 15.02 11.84C13.14 11.84 12.86 13.27 12.86 14.78V20.45H9.31V9H12.72V10.58H12.77C13.25 9.69 14.4 8.75 16.13 8.75C19.75 8.75 20.45 11.1 20.45 14.16V20.45ZM5.34 7.43C4.2 7.43 3.28 6.5 3.28 5.36C3.28 4.22 4.2 3.29 5.34 3.29C6.47 3.29 7.39 4.22 7.39 5.36C7.39 6.5 6.47 7.43 5.34 7.43ZM7.12 20.45H3.56V9H7.12V20.45Z" />
+    </svg>
+  );
+}
+
+export function ExternalLinkIcon({ className = "vf-icon-contact", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14 4H20V10" />
+      <path d="M20 4L11 13" />
+      <path d="M18 14V19C18 19.55 17.55 20 17 20H5C4.45 20 4 19.55 4 19V7C4 6.45 4.45 6 5 6H10" />
+    </svg>
+  );
+}
+
+export function TemplateIcon({ className = "vf-icon-contact", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M3 9H21" />
+      <path d="M9 21V9" />
+    </svg>
+  );
+}
+
+export function DatabaseIcon({ className = "vf-icon-feature", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <ellipse cx="12" cy="5.5" rx="8" ry="3" />
+      <path d="M4 5.5V12C4 13.66 7.58 15 12 15C16.42 15 20 13.66 20 12V5.5" />
+      <path d="M4 12V18.5C4 20.16 7.58 21.5 12 21.5C16.42 21.5 20 20.16 20 18.5V12" />
+    </svg>
+  );
+}
+
+export function FormIcon({ className = "vf-icon-feature", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="3" width="16" height="18" rx="3" />
+      <path d="M8 8H16" />
+      <path d="M8 12H16" />
+      <path d="M8 16H13" />
+    </svg>
+  );
+}
+
+export function UsersIcon({ className = "vf-icon-feature", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 19C4 15.7 6.2 14 9 14C11.8 14 14 15.7 14.5 19" />
+      <path d="M16 5.5C17.9 5.9 19.3 7.4 19.5 9.4" />
+      <path d="M16.5 14.2C18.9 14.7 20.5 16.2 20.8 18.4" />
+    </svg>
+  );
+}
+
+export function LayersIcon({ className = "vf-icon-feature", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3L21 8L12 13L3 8L12 3Z" />
+      <path d="M3 12.5L12 17.5L21 12.5" />
+      <path d="M3 17L12 22L21 17" />
+    </svg>
+  );
+}
+
+export function RocketIcon({ className = "vf-icon-feature", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 15.5C10.6 14.1 9.8 12.2 9.8 10.1C9.8 6.4 12.9 3.5 16.9 3.5C17.3 3.5 17.7 3.5 18.1 3.6C18.2 4 18.2 4.4 18.1 4.8C17.6 8.2 15.4 11 12 15.5Z" />
+      <path d="M8.7 13.8C7.9 14.1 7.2 14.5 6.6 15.1L4 17.7C3.6 18.1 3.9 18.8 4.5 18.8L8 18.3" />
+      <path d="M10.5 18.5C10.9 17.8 11.3 17.2 11.9 16.6L14.5 14" />
+      <path d="M4 20.5C4.6 19 5.4 17.9 6.6 17" />
+      <circle cx="14.5" cy="9.5" r="1.5" />
+    </svg>
+  );
+}
+
+export function ImageIcon({ className = "vf-icon-feature", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="16" rx="3" />
+      <circle cx="8.5" cy="9.5" r="1.8" />
+      <path d="M4 17L9 12.5L13 16L16.5 13L20 16.5" />
+    </svg>
+  );
+}
+
+export function ArrowUpRightIcon({ className = "vf-icon-feature", color = "currentColor" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M7 17L17 7" />
+      <path d="M8 7H17V16" />
+    </svg>
+  );
+}

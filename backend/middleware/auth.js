@@ -2,6 +2,13 @@ import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import User from '../modules/User.js'
 
+export function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'Admin') {
+    return res.status(403).json({ message: 'Administrator access required.' })
+  }
+  return next()
+}
+
 export default async function requireAuth(req, res, next) {
   const authorization = req.get('authorization') ?? ''
   const match = authorization.match(/^Bearer\s+(.+)$/i)

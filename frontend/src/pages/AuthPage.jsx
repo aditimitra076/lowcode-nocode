@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   CubeIcon,
   TerminalIcon,
@@ -30,6 +30,11 @@ import './AuthPage.css';
 export default function AuthPage({ initialTab }) {
   const { type } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo =
+    typeof location.state?.from === 'string' && location.state.from.startsWith('/')
+      ? location.state.from
+      : '/';
 
   // Determine active tab from URL param or initial prop
   const routeTab = (type || initialTab || '').toLowerCase();
@@ -114,7 +119,7 @@ export default function AuthPage({ initialTab }) {
           });
           setCurrentUser(result.user);
           setTimeout(() => {
-            navigate('/', { replace: true });
+            navigate(redirectTo, { replace: true });
           }, 850);
         } else {
           setAlert({
@@ -131,7 +136,7 @@ export default function AuthPage({ initialTab }) {
           });
           setCurrentUser(result.user);
           setTimeout(() => {
-            navigate('/', { replace: true });
+            navigate(redirectTo, { replace: true });
           }, 850);
         } else {
           setAlert({
@@ -165,7 +170,7 @@ export default function AuthPage({ initialTab }) {
       };
       loginUser({ email: ghUser.email, password: 'GithubOAuthPassword123' }).then((res) => {
         if (res.success) {
-          navigate('/', { replace: true });
+          navigate(redirectTo, { replace: true });
         }
       });
     }, 600);

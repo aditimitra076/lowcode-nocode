@@ -14,7 +14,7 @@ function newPage() {
   }
 }
 
-function countComponents(nodes) {
+export function countComponents(nodes) {
   return (nodes ?? []).reduce((total, node) => total + 1 + countComponents(node.children), 0)
 }
 
