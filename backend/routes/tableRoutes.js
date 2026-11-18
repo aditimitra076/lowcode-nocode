@@ -5,6 +5,7 @@ import {
   deleteRecord,
   deleteTable,
   getTable,
+  getTableDocs,
   listRecords,
   listTables,
   updateRecord,
@@ -18,6 +19,7 @@ router.use(requireAuth)
 
 router.get('/', listTables)
 router.post('/', createTable)
+router.get('/:tableId/docs', getTableDocs)
 router.get('/:tableId', getTable)
 router.put('/:tableId', updateTable)
 router.delete('/:tableId', deleteTable)

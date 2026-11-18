@@ -3,14 +3,118 @@ import { COMPONENT_DEFS } from '../../builder/componentRegistry';
 import { countNodes, findNode } from '../../builder/treeUtils';
 import { useActivePage, useBuilderStore } from '../../store/builderStore';
 import { fetchTables } from '../../api/tableApi';
+import { uploadImage } from '../../api/uploadApi';
 
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
 const OBJECT_ID = /^[a-f0-9]{24}$/i;
 
-function Field({ field, nodeId, value, onChange, tables }) {
+function ImageSrcField({ field, nodeId, value, onChange }) {
+  const inputId = `field-${nodeId}-${field.key}`;
+  const fileId = `${inputId}-file`;
+  const stringValue = value == null ? '' : String(value);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setUploading(true);
+    setMessage('');
+    const result = await uploadImage(file);
+    setUploading(false);
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+    onChange(result.data.url);
+    setMessage('Image uploaded.');
+  };
+
+  return (
+    <div className="vf-field">
+      <label htmlFor={inputId}>{field.label}</label>
+      <input
+        id={inputId}
+        type="text"
+        placeholder="https://… or upload below"
+        value={stringValue}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <div className="vf-upload-row">
+        <input
+          id={fileId}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          disabled={uploading}
+          onChange={handleUpload}
+        />
+        <label htmlFor={fileId} className="vf-mini-btn">
+          {uploading ? 'Uploading…' : 'Upload image'}
+        </label>
+      </div>
+      {stringValue ? (
+        <img className="vf-upload-preview" src={stringValue} alt="" />
+      ) : null}
+      {message ? <span className="vf-field-help">{message}</span> : null}
+    </div>
+  );
+}
+
+function Field({ field, nodeId, value, onChange, tables, pages }) {
   const inputId = `field-${nodeId}-${field.key}`;
   const stringValue = value == null ? '' : String(value);
   const selectedTable = tables.find((table) => table.id === stringValue);
+
+  if (field.type === 'imageSrc') {
+    return (
+      <ImageSrcField
+        field={field}
+        nodeId={nodeId}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+
+  if (field.type === 'page') {
+    return (
+      <div className="vf-field">
+        <label htmlFor={inputId}>{field.label}</label>
+        <select
+          id={inputId}
+          value={stringValue}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          <option value="">Select a page…</option>
+          {pages.map((page) => (
+            <option key={page.id} value={page.id}>
+              {page.name} ({page.path})
+            </option>
+          ))}
+        </select>
+        {!pages.length ? (
+          <span className="vf-field-help">Add pages in the left panel first.</span>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (field.type === 'urlWhen') {
+    return (
+      <div className="vf-field">
+        <label htmlFor={inputId}>{field.label}</label>
+        <input
+          id={inputId}
+          type="url"
+          placeholder="https://example.com"
+          value={stringValue}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </div>
+    );
+  }
 
   if (field.type === 'table') {
     return (
@@ -108,15 +212,27 @@ function Field({ field, nodeId, value, onChange, tables }) {
   }
 
   if (field.type === 'select') {
+    const firstOption = field.options[0];
+    const fallback =
+      typeof firstOption === 'string' ? firstOption : firstOption?.value || '';
+    const selectValue = stringValue || fallback;
     return (
       <div className="vf-field">
         <label htmlFor={inputId}>{field.label}</label>
-        <select id={inputId} value={stringValue} onChange={(event) => onChange(event.target.value)}>
-          {field.options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
+        <select
+          id={inputId}
+          value={selectValue}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {field.options.map((option) => {
+            const value = typeof option === 'string' ? option : option.value;
+            const label = typeof option === 'string' ? option : option.label;
+            return (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            );
+          })}
         </select>
       </div>
     );
@@ -162,6 +278,7 @@ function Field({ field, nodeId, value, onChange, tables }) {
 
 export default function PropertyPanel() {
   const page = useActivePage();
+  const pages = useBuilderStore((state) => state.pages);
   const projectId = useBuilderStore((state) => state.projectId);
   const selectedId = useBuilderStore((state) => state.selectedId);
   const updateProps = useBuilderStore((state) => state.updateProps);
@@ -191,10 +308,25 @@ export default function PropertyPanel() {
   }, [projectId, selectedId]);
 
   const def = node ? COMPONENT_DEFS[node.type] : null;
-  const contentFields = useMemo(
-    () => (def?.fields || []).filter((field) => field.section === 'content'),
-    [def],
-  );
+  const linkType = node?.props?.linkType || 'url';
+  const redirectOnSuccess = node?.props?.redirectOnSuccess || 'none';
+  const dataSource =
+    node?.props?.dataSource ||
+    (node?.type === 'table' && node?.props?.tableId ? 'api' : 'static');
+  const contentFields = useMemo(() => {
+    return (def?.fields || []).filter((field) => {
+      if (field.section !== 'content') return false;
+      if (field.when) {
+        return Object.entries(field.when).every(
+          ([key, expected]) => (node?.props?.[key] || 'none') === expected,
+        );
+      }
+      if (field.type === 'urlWhen' && linkType !== 'url') return false;
+      if (field.type === 'page' && linkType !== 'page') return false;
+      if (field.showWhen && field.showWhen !== dataSource) return false;
+      return true;
+    });
+  }, [def, linkType, dataSource, redirectOnSuccess, node?.props]);
   const styleFields = useMemo(
     () => (def?.fields || []).filter((field) => field.section === 'style'),
     [def],
@@ -235,10 +367,11 @@ export default function PropertyPanel() {
 
     return (
       <Field
-        key={field.key}
+        key={`${field.key}-${field.type}-${field.showWhen || 'all'}`}
         field={enriched}
         nodeId={node.id}
         tables={tables}
+        pages={pages}
         value={(field.section === 'content' ? node.props : node.style)[field.key]}
         onChange={(value) => {
           if (field.section !== 'content') {
@@ -253,8 +386,38 @@ export default function PropertyPanel() {
               tableId: value,
               ...(node.type === 'form' ? { fieldKeys: keys } : {}),
               ...(node.type === 'table' && table
-                ? { columns: (table.fields || []).map((item) => item.key).join(', ') }
+                ? { columns: (table.fields || []).map((item) => item.key).join(',') }
                 : {}),
+            });
+            return;
+          }
+
+          if (field.key === 'linkType') {
+            updateProps(node.id, {
+              linkType: value,
+              ...(value === 'page' ? { href: '#' } : { pageId: '' }),
+            });
+            return;
+          }
+
+          if (field.key === 'redirectOnSuccess') {
+            updateProps(node.id, {
+              redirectOnSuccess: value,
+              ...(value === 'url'
+                ? { redirectPageId: '' }
+                : value === 'page'
+                  ? { redirectUrl: '' }
+                  : { redirectUrl: '', redirectPageId: '' }),
+            });
+            return;
+          }
+
+          if (field.key === 'dataSource') {
+            updateProps(node.id, {
+              dataSource: value,
+              ...(value === 'static'
+                ? { tableId: '', columns: 'Name, Email, Status', rows: node.props?.rows || '2' }
+                : { columns: '', rows: '0' }),
             });
             return;
           }

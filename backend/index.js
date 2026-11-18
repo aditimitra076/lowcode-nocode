@@ -10,6 +10,8 @@ import marketplaceRoutes from "./routes/marketplaceRoutes.js";
 import tableRoutes from "./routes/tableRoutes.js";
 import publicFormRoutes from "./routes/publicFormRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import { UPLOADS_DIR } from "./controllers/uploadController.js";
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
@@ -34,6 +36,8 @@ app.use("/api/projects/:projectId/tables", tableRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/public", publicFormRoutes);
+app.use("/api/uploads", uploadRoutes);
+app.use("/uploads", express.static(UPLOADS_DIR));
 app.use("/api", healthRoutes);
 
 // Global error handler

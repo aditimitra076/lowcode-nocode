@@ -309,32 +309,27 @@ export default function Marketplace() {
         ) : (
           <div className="vf-market-grid">
             {filteredProjects.map((proj) => (
-              <div key={proj.id} className="vf-market-card">
-                <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '8px',
-                    }}
-                  >
+              <article key={proj.id} className="vf-market-card">
+                <div className="vf-market-card-body">
+                  <div className="vf-market-card-top">
                     <span className="vf-market-pill">BaaS Blueprint</span>
                     <span className="vf-market-verified">
                       <span className="vf-market-verified-dot">●</span> Verified
                     </span>
                   </div>
 
-                  <h3 className="vf-market-card-title">{proj.name}</h3>
+                  <h3 className="vf-market-card-title">{proj.name || 'Untitled blueprint'}</h3>
 
-                  <div className="vf-market-byline">
-                    By <span>{proj.developer.name}</span>
+                  <p className="vf-market-byline">
+                    By <span>{proj.developer.name || 'Developer'}</span>
                     {proj.developer.title ? ` · ${proj.developer.title}` : ''}
-                  </div>
+                  </p>
 
-                  <p className="vf-market-description">{proj.description}</p>
+                  <p className="vf-market-description">
+                    {proj.description?.trim() ||
+                      'Approved blueprint ready to clone into your workspace.'}
+                  </p>
 
-                  {/* Developer contact details (FR-43) */}
                   <div className="vf-market-contact-strip">
                     <span className="vf-market-avatar">{initials(proj.developer.name)}</span>
                     <div className="vf-market-contact-lines">
@@ -364,49 +359,49 @@ export default function Marketplace() {
                       ) : null}
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <div className="vf-market-tag-row">
-                    {proj.tags.map((tag) => (
-                      <span key={tag} className="vf-market-tag">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="vf-market-card-footer">
-                    <span className="vf-market-counts">
-                      {proj.pagesCount} pages · {proj.tablesCount} tables
-                    </span>
-                    <div className="vf-market-card-actions">
-                      <button
-                        type="button"
-                        className="vf-market-ghost-btn"
-                        onClick={() => navigate(`/site/${proj.id}`)}
-                      >
-                        Visit
-                      </button>
-                      <button
-                        type="button"
-                        className="vf-market-ghost-btn"
-                        onClick={() => openDetails(proj)}
-                      >
-                        Details
-                      </button>
-                      <button
-                        type="button"
-                        className="vf-market-clone-btn"
-                        disabled={cloneId === proj.id}
-                        onClick={() => handleUseTemplate(proj)}
-                      >
-                        <TemplateIcon className="vf-icon-contact" color="#ffffff" />
-                        <span>{cloneId === proj.id ? 'Adding…' : 'Use Template'}</span>
-                      </button>
+                  {(proj.tags || []).length ? (
+                    <div className="vf-market-tag-row">
+                      {proj.tags.map((tag) => (
+                        <span key={tag} className="vf-market-tag">
+                          #{tag}
+                        </span>
+                      ))}
                     </div>
+                  ) : null}
+                </div>
+
+                <div className="vf-market-card-footer">
+                  <span className="vf-market-counts">
+                    {proj.pagesCount} pages · {proj.tablesCount} tables
+                  </span>
+                  <div className="vf-market-card-actions">
+                    <button
+                      type="button"
+                      className="vf-market-ghost-btn"
+                      onClick={() => navigate(`/site/${proj.id}`)}
+                    >
+                      Visit
+                    </button>
+                    <button
+                      type="button"
+                      className="vf-market-ghost-btn"
+                      onClick={() => openDetails(proj)}
+                    >
+                      Details
+                    </button>
+                    <button
+                      type="button"
+                      className="vf-market-clone-btn"
+                      disabled={cloneId === proj.id}
+                      onClick={() => handleUseTemplate(proj)}
+                    >
+                      <TemplateIcon className="vf-icon-contact" color="#ffffff" />
+                      <span>{cloneId === proj.id ? 'Adding…' : 'Use Template'}</span>
+                    </button>
                   </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
@@ -602,6 +597,13 @@ export default function Marketplace() {
                   </button>
                   <button
                     type="button"
+                    className="vf-market-secondary-btn"
+                    onClick={() => setSelected(null)}
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
                     className="vf-market-clone-btn vf-market-clone-btn-lg"
                     disabled={cloneId === selected.listing.id}
                     onClick={() => handleUseTemplate(selected.listing)}
@@ -614,13 +616,6 @@ export default function Marketplace() {
                           ? 'Use This Template'
                           : 'Sign In & Use Template'}
                     </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="vf-market-secondary-btn"
-                    onClick={() => setSelected(null)}
-                  >
-                    Close
                   </button>
                 </div>
 

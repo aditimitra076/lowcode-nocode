@@ -95,6 +95,7 @@ export default function Builder() {
   const accessRole = useBuilderStore((state) => state.accessRole);
   const loadProject = useBuilderStore((state) => state.loadProject);
   const saveProject = useBuilderStore((state) => state.saveProject);
+  const saveProjectName = useBuilderStore((state) => state.saveProjectName);
   const setProjectName = useBuilderStore((state) => state.setProjectName);
   const setActivePage = useBuilderStore((state) => state.setActivePage);
   const addPage = useBuilderStore((state) => state.addPage);
@@ -103,6 +104,12 @@ export default function Builder() {
   const setViewport = useBuilderStore((state) => state.setViewport);
   const togglePreview = useBuilderStore((state) => state.togglePreview);
   const setDropTarget = useBuilderStore((state) => state.setDropTarget);
+  const undo = useBuilderStore((state) => state.undo);
+  const redo = useBuilderStore((state) => state.redo);
+  const pastLength = useBuilderStore((state) => (state.past || []).length);
+  const futureLength = useBuilderStore((state) => (state.future || []).length);
+  const selectedId = useBuilderStore((state) => state.selectedId);
+  const duplicateComponent = useBuilderStore((state) => state.duplicateComponent);
 
   const page = useActivePage();
   const [activeLabel, setActiveLabel] = useState(null);
@@ -118,7 +125,9 @@ export default function Builder() {
 
   useEffect(() => {
     loadProject(projectId, location.state?.projectName);
-  }, [projectId, loadProject, location.state]);
+    // Only reload when the route project changes — not when location.state updates after save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, loadProject]);
 
   useEffect(
     () => () => {
@@ -130,9 +139,30 @@ export default function Builder() {
   useEffect(() => {
     const handleKeyDown = (event) => {
       const tag = document.activeElement?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      const mod = event.ctrlKey || event.metaKey;
       const state = useBuilderStore.getState();
+
+      if (mod && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+        if (typing) return;
+        event.preventDefault();
+        state.undo();
+        return;
+      }
+      if (mod && (event.key.toLowerCase() === 'y' || (event.key.toLowerCase() === 'z' && event.shiftKey))) {
+        if (typing) return;
+        event.preventDefault();
+        state.redo();
+        return;
+      }
+      if (mod && event.key.toLowerCase() === 'd' && state.selectedId && !typing) {
+        event.preventDefault();
+        state.duplicateComponent(state.selectedId);
+        return;
+      }
+
+      if (typing) return;
+
       if ((event.key === 'Delete' || event.key === 'Backspace') && state.selectedId) {
         event.preventDefault();
         state.deleteComponent(state.selectedId);
@@ -199,9 +229,34 @@ export default function Builder() {
     setSaveStatus('saved');
     setSaveMessage('');
     if (result.projectId !== projectId) {
-      navigate(`/builder/${result.projectId}`, { replace: true });
+      navigate(`/builder/${result.projectId}`, {
+        replace: true,
+        state: { projectName: useBuilderStore.getState().projectName },
+      });
     }
     saveTimer.current = window.setTimeout(() => setSaveStatus('idle'), 2500);
+  };
+
+  const handleProjectNameBlur = async () => {
+    const trimmed = (useBuilderStore.getState().projectName || '').trim() || 'Untitled Project';
+    setProjectName(trimmed);
+    if (!canEditData) return;
+
+    const result = await saveProjectName();
+    if (!result.ok) {
+      setSaveStatus('error');
+      setSaveMessage(result.message || 'Could not save project name.');
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      saveTimer.current = window.setTimeout(() => setSaveStatus('idle'), 6000);
+      return;
+    }
+
+    if (result.projectId && result.projectId !== projectId) {
+      navigate(`/builder/${result.projectId}`, {
+        replace: true,
+        state: { projectName: trimmed },
+      });
+    }
   };
 
   const handlePublish = async (event) => {
@@ -251,7 +306,14 @@ export default function Builder() {
             className="vf-project-name"
             value={projectName}
             aria-label="Project name"
+            disabled={!canEditData}
             onChange={(event) => setProjectName(event.target.value)}
+            onBlur={handleProjectNameBlur}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.currentTarget.blur();
+              }
+            }}
           />
           <span className="vf-toolbar-page">
             {page?.name}
@@ -260,6 +322,36 @@ export default function Builder() {
         </div>
 
         <div className="vf-toolbar-right">
+          <div className="vf-history-toggle" role="group" aria-label="History">
+            <button
+              type="button"
+              className="vf-btn"
+              title="Undo (Ctrl+Z)"
+              disabled={!canEditData || pastLength === 0}
+              onClick={() => undo()}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="vf-btn"
+              title="Redo (Ctrl+Y)"
+              disabled={!canEditData || futureLength === 0}
+              onClick={() => redo()}
+            >
+              Redo
+            </button>
+            <button
+              type="button"
+              className="vf-btn"
+              title="Duplicate selected (Ctrl+D)"
+              disabled={!canEditData || !selectedId || previewing}
+              onClick={() => selectedId && duplicateComponent(selectedId)}
+            >
+              Duplicate
+            </button>
+          </div>
+
           <div className="vf-device-toggle" role="group" aria-label="Preview width">
             <button
               type="button"

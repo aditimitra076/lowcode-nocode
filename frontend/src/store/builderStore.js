@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createComponent } from '../builder/componentRegistry';
 import {
+  cloneNode,
   containsNode,
   createId,
   findNode,
@@ -12,6 +13,13 @@ import {
 import { createProject, fetchProject, updateProject } from '../api/projectApi';
 
 const OBJECT_ID = /^[a-f0-9]{24}$/i;
+const HISTORY_LIMIT = 50;
+const STYLE_BATCH_MS = 500;
+
+let styleBatchOpen = false;
+let styleBatchTimer = null;
+let propsBatchOpen = false;
+let propsBatchTimer = null;
 
 function createPage(name, path) {
   return { id: createId('page'), name, path, components: [] };
@@ -21,6 +29,25 @@ const initialPage = createPage('Home', '/');
 
 function activePageOf(state) {
   return state.pages.find((page) => page.id === state.activePageId) || state.pages[0];
+}
+
+function clonePages(pages) {
+  return typeof structuredClone === 'function'
+    ? structuredClone(pages)
+    : JSON.parse(JSON.stringify(pages));
+}
+
+function historySnapshot(state) {
+  return {
+    pages: clonePages(state.pages),
+    selectedId: state.selectedId,
+    activePageId: state.activePageId,
+  };
+}
+
+function pushHistory(state) {
+  const past = [...(state.past || []), historySnapshot(state)].slice(-HISTORY_LIMIT);
+  return { past, future: [] };
 }
 
 function emptyProject(projectName = 'Untitled Project') {
@@ -36,7 +63,25 @@ function emptyProject(projectName = 'Untitled Project') {
     savedAt: null,
     isOwner: true,
     accessRole: 'Owner',
+    past: [],
+    future: [],
   };
+}
+
+function clearStyleBatch() {
+  styleBatchOpen = false;
+  if (styleBatchTimer) {
+    clearTimeout(styleBatchTimer);
+    styleBatchTimer = null;
+  }
+}
+
+function clearPropsBatch() {
+  propsBatchOpen = false;
+  if (propsBatchTimer) {
+    clearTimeout(propsBatchTimer);
+    propsBatchTimer = null;
+  }
 }
 
 export const useBuilderStore = create((set, get) => ({
@@ -53,9 +98,17 @@ export const useBuilderStore = create((set, get) => ({
   loadError: null,
   isOwner: true,
   accessRole: 'Owner',
+  past: [],
+  future: [],
+  dataRevision: 0,
 
   setProjectName(projectName) {
     set({ projectName });
+  },
+
+  /** Notify table previews to refetch after a successful form submit. */
+  bumpDataRevision() {
+    set((state) => ({ dataRevision: (state.dataRevision || 0) + 1 }));
   },
 
   setActivePage(pageId) {
@@ -66,6 +119,7 @@ export const useBuilderStore = create((set, get) => ({
     set((state) => {
       const page = createPage(`Page ${state.pages.length + 1}`, `/page-${state.pages.length + 1}`);
       return {
+        ...pushHistory(state),
         pages: [...state.pages, page],
         activePageId: page.id,
         selectedId: null,
@@ -99,6 +153,7 @@ export const useBuilderStore = create((set, get) => ({
       const activePageId =
         state.activePageId === pageId ? pages[0].id : state.activePageId;
       return {
+        ...pushHistory(state),
         pages,
         activePageId,
         selectedId: null,
@@ -123,6 +178,50 @@ export const useBuilderStore = create((set, get) => ({
     set({ selectedId });
   },
 
+  canUndo() {
+    return (get().past || []).length > 0;
+  },
+
+  canRedo() {
+    return (get().future || []).length > 0;
+  },
+
+  undo() {
+    clearStyleBatch();
+    clearPropsBatch();
+    set((state) => {
+      const past = state.past || [];
+      if (!past.length) return state;
+      const previous = past[past.length - 1];
+      return {
+        pages: previous.pages,
+        selectedId: previous.selectedId,
+        activePageId: previous.activePageId,
+        past: past.slice(0, -1),
+        future: [...(state.future || []), historySnapshot(state)],
+        dropTarget: null,
+      };
+    });
+  },
+
+  redo() {
+    clearStyleBatch();
+    clearPropsBatch();
+    set((state) => {
+      const future = state.future || [];
+      if (!future.length) return state;
+      const next = future[future.length - 1];
+      return {
+        pages: next.pages,
+        selectedId: next.selectedId,
+        activePageId: next.activePageId,
+        past: [...(state.past || []), historySnapshot(state)].slice(-HISTORY_LIMIT),
+        future: future.slice(0, -1),
+        dropTarget: null,
+      };
+    });
+  },
+
   addComponent(type, parentId = 'root', index) {
     const node = createComponent(type);
     set((state) => {
@@ -136,7 +235,12 @@ export const useBuilderStore = create((set, get) => ({
           ? { ...item, components: insertNode(item.components, parentId, targetIndex, node) }
           : item,
       );
-      return { pages, selectedId: node.id, dropTarget: null };
+      return {
+        ...pushHistory(state),
+        pages,
+        selectedId: node.id,
+        dropTarget: null,
+      };
     });
     return node;
   },
@@ -147,7 +251,6 @@ export const useBuilderStore = create((set, get) => ({
       if (!page) return state;
       const node = findNode(page.components, id);
       if (!node) return state;
-      // A container cannot be moved inside itself or one of its descendants.
       if (parentId === id || containsNode(node, parentId)) return state;
 
       const info = findParentInfo(page.components, id);
@@ -162,7 +265,7 @@ export const useBuilderStore = create((set, get) => ({
           ? { ...item, components: insertNode(withoutNode, parentId, index, removed) }
           : item,
       );
-      return { pages, dropTarget: null };
+      return { ...pushHistory(state), pages, dropTarget: null };
     });
   },
 
@@ -173,6 +276,7 @@ export const useBuilderStore = create((set, get) => ({
       const { nodes, removed } = removeNode(page.components, id);
       if (!removed) return state;
       return {
+        ...pushHistory(state),
         pages: state.pages.map((item) =>
           item.id === page.id ? { ...item, components: nodes } : item,
         ),
@@ -182,28 +286,79 @@ export const useBuilderStore = create((set, get) => ({
     });
   },
 
+  duplicateComponent(id) {
+    set((state) => {
+      const page = activePageOf(state);
+      if (!page) return state;
+      const info = findParentInfo(page.components, id);
+      const source = findNode(page.components, id);
+      if (!info || !source) return state;
+      const copy = cloneNode(source);
+      const pages = state.pages.map((item) =>
+        item.id === page.id
+          ? {
+              ...item,
+              components: insertNode(item.components, info.parentId, info.index + 1, copy),
+            }
+          : item,
+      );
+      return {
+        ...pushHistory(state),
+        pages,
+        selectedId: copy.id,
+        dropTarget: null,
+      };
+    });
+  },
+
   updateProps(id, patch) {
-    set((state) => ({
-      pages: state.pages.map((page) => ({
-        ...page,
-        components: updateNode(page.components, id, (node) => ({
-          ...node,
-          props: { ...node.props, ...patch },
+    set((state) => {
+      let history = {};
+      if (!propsBatchOpen) {
+        history = pushHistory(state);
+        propsBatchOpen = true;
+      }
+      clearTimeout(propsBatchTimer);
+      propsBatchTimer = setTimeout(() => {
+        propsBatchOpen = false;
+      }, STYLE_BATCH_MS);
+
+      return {
+        ...history,
+        pages: state.pages.map((page) => ({
+          ...page,
+          components: updateNode(page.components, id, (node) => ({
+            ...node,
+            props: { ...node.props, ...patch },
+          })),
         })),
-      })),
-    }));
+      };
+    });
   },
 
   updateStyle(id, patch) {
-    set((state) => ({
-      pages: state.pages.map((page) => ({
-        ...page,
-        components: updateNode(page.components, id, (node) => ({
-          ...node,
-          style: { ...node.style, ...patch },
+    set((state) => {
+      let history = {};
+      if (!styleBatchOpen) {
+        history = pushHistory(state);
+        styleBatchOpen = true;
+      }
+      clearTimeout(styleBatchTimer);
+      styleBatchTimer = setTimeout(() => {
+        styleBatchOpen = false;
+      }, STYLE_BATCH_MS);
+
+      return {
+        ...history,
+        pages: state.pages.map((page) => ({
+          ...page,
+          components: updateNode(page.components, id, (node) => ({
+            ...node,
+            style: { ...node.style, ...patch },
+          })),
         })),
-      })),
-    }));
+      };
+    });
   },
 
   setDropTarget(dropTarget) {
@@ -228,7 +383,11 @@ export const useBuilderStore = create((set, get) => ({
 
   async loadProject(projectId, fallbackName) {
     const id = projectId || 'draft';
+    const requestId = (get()._loadRequestId || 0) + 1;
+    clearStyleBatch();
+    clearPropsBatch();
     set({
+      _loadRequestId: requestId,
       projectId: id,
       loading: true,
       loadError: null,
@@ -236,19 +395,27 @@ export const useBuilderStore = create((set, get) => ({
       previewing: false,
       dropTarget: null,
       savedAt: null,
+      past: [],
+      future: [],
     });
 
     if (!OBJECT_ID.test(id)) {
-      set({ ...emptyProject(fallbackName || 'Untitled Project'), loading: false });
+      if (get()._loadRequestId !== requestId) return;
+      set({
+        ...emptyProject(fallbackName || 'Untitled Project'),
+        projectId: 'draft',
+        loading: false,
+      });
       return;
     }
 
     const result = await fetchProject(id);
+    if (get()._loadRequestId !== requestId) return;
 
-    // The project may have been deleted, or this is a new project URL.
     if (!result.ok && (result.status === 404 || result.status === 0)) {
       set({
         ...emptyProject(fallbackName || 'Untitled Project'),
+        projectId: id,
         loading: false,
         loadError: result.status === 0 ? result.message : null,
       });
@@ -258,6 +425,7 @@ export const useBuilderStore = create((set, get) => ({
     if (!result.ok) {
       set({
         ...emptyProject(fallbackName || 'Untitled Project'),
+        projectId: id,
         loading: false,
         loadError: result.message,
       });
@@ -271,7 +439,7 @@ export const useBuilderStore = create((set, get) => ({
 
     set({
       projectId: project.id,
-      projectName: project.name,
+      projectName: project.name || fallbackName || 'Untitled Project',
       pages,
       activePageId: pages[0].id,
       viewport: 'desktop',
@@ -279,13 +447,46 @@ export const useBuilderStore = create((set, get) => ({
       savedAt: project.updatedAt || null,
       isOwner: project.isOwner !== false,
       accessRole: project.accessRole || (project.isOwner === false ? 'Viewer' : 'Owner'),
+      past: [],
+      future: [],
     });
+  },
+
+  async saveProjectName() {
+    const { projectId, projectName, accessRole, isOwner } = get();
+    if (!isOwner && accessRole === 'Viewer') {
+      return { ok: false, message: 'You have view-only access to this project.' };
+    }
+
+    const name = (projectName || '').trim() || 'Untitled Project';
+    set({ projectName: name });
+
+    if (!OBJECT_ID.test(projectId)) {
+      return get().saveProject();
+    }
+
+    const result = await updateProject(projectId, { name });
+    if (!result.ok) {
+      return { ok: false, message: result.message };
+    }
+
+    const project = result.data.project;
+    set({
+      projectId: project.id,
+      projectName: project.name || name,
+      savedAt: project.updatedAt,
+      loadError: null,
+    });
+    return { ok: true, projectId: project.id, savedAt: project.updatedAt };
   },
 
   async saveProject() {
     const { projectId, projectName, pages } = get();
+    const name = (projectName || '').trim() || 'Untitled Project';
+    set({ projectName: name });
+
     const payload = {
-      name: (projectName || '').trim() || 'Untitled Project',
+      name,
       pages,
     };
 
@@ -293,7 +494,6 @@ export const useBuilderStore = create((set, get) => ({
       ? await updateProject(projectId, payload)
       : await createProject(payload);
 
-    // Local draft or a project that no longer exists on the server.
     if (!result.ok && result.status === 404) {
       result = await createProject(payload);
     }
@@ -306,7 +506,7 @@ export const useBuilderStore = create((set, get) => ({
     const project = result.data.project;
     set({
       projectId: project.id,
-      projectName: project.name,
+      projectName: project.name || name,
       savedAt: project.updatedAt,
       loadError: null,
     });

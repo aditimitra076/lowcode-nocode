@@ -57,6 +57,10 @@ export function fetchRecords(projectId, tableId) {
   return request(`${tablePath(projectId, tableId)}/records`);
 }
 
+export function fetchTableDocs(projectId, tableId) {
+  return request(`${tablePath(projectId, tableId)}/docs`);
+}
+
 export function createRecord(projectId, tableId, data) {
   return request(`${tablePath(projectId, tableId)}/records`, {
     method: 'POST',

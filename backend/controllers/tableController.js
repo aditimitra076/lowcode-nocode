@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 import DataTable, { FIELD_TYPES } from '../modules/DataTable.js'
 import TableRecord from '../modules/TableRecord.js'
+import { coerceRecordData } from '../utils/fieldData.js'
 import { canEdit, findAccessibleProject } from '../utils/projectAccess.js'
 
 function serializeTable(table) {
@@ -8,7 +9,11 @@ function serializeTable(table) {
     id: table.id,
     projectId: String(table.project),
     name: table.name,
-    fields: table.fields,
+    fields: (table.fields || []).map((field) => ({
+      key: field.key,
+      label: field.label,
+      type: field.type || 'text',
+    })),
     createdAt: table.createdAt,
     updatedAt: table.updatedAt,
   }
@@ -43,17 +48,6 @@ function normalizeFields(fields) {
   }
 
   return result.slice(0, 40)
-}
-
-function pickRecordData(fields, payload) {
-  const source = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {}
-  const data = {}
-  for (const field of fields) {
-    if (Object.prototype.hasOwnProperty.call(source, field.key)) {
-      data[field.key] = source[field.key]
-    }
-  }
-  return data
 }
 
 async function loadEditableProject(req, res) {
@@ -146,6 +140,105 @@ export async function getTable(req, res, next) {
   }
 }
 
+function sampleValueForType(type) {
+  switch (type) {
+    case 'number':
+      return 1
+    case 'email':
+      return 'name@example.com'
+    case 'boolean':
+      return true
+    case 'date':
+      return '2026-01-15'
+    default:
+      return 'example'
+  }
+}
+
+/**
+ * Generated CRUD API docs for a project table (UC-05).
+ */
+export async function getTableDocs(req, res, next) {
+  try {
+    const loaded = await loadTable(req, res)
+    if (!loaded) return undefined
+
+    const table = serializeTable(loaded.table)
+    const projectId = req.params.projectId
+    const tableId = table.id
+    const base = `/api/projects/${projectId}/tables/${tableId}`
+    const sampleData = {}
+    for (const field of table.fields || []) {
+      sampleData[field.key] = sampleValueForType(field.type)
+    }
+
+    const endpoints = [
+      {
+        id: 'list-tables',
+        method: 'GET',
+        path: `/api/projects/${projectId}/tables`,
+        summary: 'List all tables in this project',
+        auth: 'Bearer JWT required',
+      },
+      {
+        id: 'get-table',
+        method: 'GET',
+        path: base,
+        summary: `Get schema for “${table.name}”`,
+        auth: 'Bearer JWT required',
+      },
+      {
+        id: 'list-records',
+        method: 'GET',
+        path: `${base}/records`,
+        summary: `List records in “${table.name}”`,
+        auth: 'Bearer JWT required',
+      },
+      {
+        id: 'create-record',
+        method: 'POST',
+        path: `${base}/records`,
+        summary: `Create a record in “${table.name}”`,
+        auth: 'Bearer JWT required (Owner or Editor)',
+        sampleBody: { data: sampleData },
+      },
+      {
+        id: 'update-record',
+        method: 'PUT',
+        path: `${base}/records/:recordId`,
+        summary: `Update a record in “${table.name}”`,
+        auth: 'Bearer JWT required (Owner or Editor)',
+        sampleBody: { data: sampleData },
+      },
+      {
+        id: 'delete-record',
+        method: 'DELETE',
+        path: `${base}/records/:recordId`,
+        summary: `Delete a record from “${table.name}”`,
+        auth: 'Bearer JWT required (Owner or Editor)',
+      },
+      {
+        id: 'public-form',
+        method: 'POST',
+        path: `/api/public/projects/${projectId}/forms/:componentId`,
+        summary: 'Public form submit into a bound table (no JWT)',
+        auth: 'None — form component must be bound to this table',
+        sampleBody: { data: sampleData },
+      },
+    ]
+
+    return res.json({
+      docs: {
+        table,
+        baseUrl: base,
+        endpoints,
+      },
+    })
+  } catch (error) {
+    return next(error)
+  }
+}
+
 export async function updateTable(req, res, next) {
   try {
     const loaded = await loadTable(req, res, { requireEdit: true })
@@ -203,7 +296,10 @@ export async function createRecord(req, res, next) {
   try {
     const loaded = await loadTable(req, res, { requireEdit: true })
     if (!loaded) return undefined
-    const data = pickRecordData(loaded.table.fields, req.body?.data ?? req.body)
+    const { data, errors } = coerceRecordData(loaded.table.fields, req.body?.data ?? req.body)
+    if (errors.length) {
+      return res.status(400).json({ message: errors[0] })
+    }
     const record = await TableRecord.create({ table: loaded.table._id, data })
     return res.status(201).json({ record: serializeRecord(record) })
   } catch (error) {
@@ -227,9 +323,14 @@ export async function updateRecord(req, res, next) {
       return res.status(404).json({ message: 'Record not found' })
     }
 
+    const { data, errors } = coerceRecordData(loaded.table.fields, req.body?.data ?? req.body)
+    if (errors.length) {
+      return res.status(400).json({ message: errors[0] })
+    }
+
     record.data = {
       ...record.data,
-      ...pickRecordData(loaded.table.fields, req.body?.data ?? req.body),
+      ...data,
     }
     await record.save()
     return res.json({ record: serializeRecord(record) })

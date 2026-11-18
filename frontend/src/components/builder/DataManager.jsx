@@ -5,6 +5,7 @@ import {
   deleteRecord,
   deleteTable,
   fetchRecords,
+  fetchTableDocs,
   fetchTables,
   updateTable,
 } from '../../api/tableApi';
@@ -21,6 +22,17 @@ function toKey(label) {
   );
 }
 
+function inputTypeForField(type) {
+  if (type === 'email') return 'email';
+  if (type === 'number') return 'number';
+  if (type === 'date') return 'date';
+  return 'text';
+}
+
+function newRowId() {
+  return `row_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function DataManager({ projectId, canEdit, open, onClose }) {
   const [tables, setTables] = useState([]);
   const [selectedId, setSelectedId] = useState('');
@@ -31,9 +43,11 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
 
   const [newTableName, setNewTableName] = useState('');
   const [newFieldLabel, setNewFieldLabel] = useState('Name');
+  const [newFieldType, setNewFieldType] = useState('text');
   const [draftFields, setDraftFields] = useState([]);
   const [draftName, setDraftName] = useState('');
   const [recordDraft, setRecordDraft] = useState({});
+  const [apiDocs, setApiDocs] = useState(null);
 
   const selected = useMemo(
     () => tables.find((table) => table.id === selectedId) || null,
@@ -83,11 +97,13 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
       setDraftName('');
       setRecords([]);
       setRecordDraft({});
+      setApiDocs(null);
       return;
     }
     setDraftName(selected.name);
     setDraftFields(
       (selected.fields || []).map((field) => ({
+        id: newRowId(),
         key: field.key,
         label: field.label,
         type: field.type || 'text',
@@ -97,6 +113,29 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
     loadRecords(selected.id);
   }, [selected?.id, projectId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDocs() {
+      if (tab !== 'api' || !selectedId) {
+        setApiDocs(null);
+        return;
+      }
+      const result = await fetchTableDocs(projectId, selectedId);
+      if (cancelled) return;
+      if (!result.ok) {
+        setApiDocs(null);
+        setMessage(result.message);
+        return;
+      }
+      setApiDocs(result.data.docs || null);
+      setMessage('');
+    }
+    loadDocs();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, selectedId, projectId]);
+
   if (!open) return null;
 
   const handleCreateTable = async (event) => {
@@ -105,7 +144,13 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
     const label = newFieldLabel.trim() || 'Name';
     const result = await createTable(projectId, {
       name: newTableName.trim(),
-      fields: [{ key: toKey(label), label, type: 'text' }],
+      fields: [
+        {
+          key: toKey(label),
+          label,
+          type: FIELD_TYPES.includes(newFieldType) ? newFieldType : 'text',
+        },
+      ],
     });
     if (!result.ok) {
       setMessage(result.message);
@@ -113,6 +158,7 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
     }
     setNewTableName('');
     setNewFieldLabel('Name');
+    setNewFieldType('text');
     await loadTables(result.data.table.id);
     setTab('fields');
     setMessage(`Created table “${result.data.table.name}”.`);
@@ -121,11 +167,14 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
   const handleSaveFields = async () => {
     if (!canEdit || !selected) return;
     const fields = draftFields
-      .map((field) => ({
-        key: toKey(field.key || field.label),
-        label: field.label.trim() || field.key,
-        type: FIELD_TYPES.includes(field.type) ? field.type : 'text',
-      }))
+      .map((field) => {
+        const label = field.label.trim() || field.key;
+        return {
+          key: toKey(label) || field.key || 'field',
+          label,
+          type: FIELD_TYPES.includes(field.type) ? field.type : 'text',
+        };
+      })
       .filter((field) => field.key && field.label);
 
     if (!fields.length) {
@@ -161,13 +210,28 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
   const handleAddField = () => {
     setDraftFields((current) => [
       ...current,
-      { key: `field_${current.length + 1}`, label: `Field ${current.length + 1}`, type: 'text' },
+      {
+        id: newRowId(),
+        key: `field_${current.length + 1}`,
+        label: `Field ${current.length + 1}`,
+        type: 'text',
+      },
     ]);
   };
 
   const handleCreateRecord = async (event) => {
     event.preventDefault();
     if (!canEdit || !selected) return;
+
+    for (const field of selected.fields || []) {
+      if (field.type !== 'email') continue;
+      const value = String(recordDraft[field.key] ?? '').trim();
+      if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        setMessage(`“${field.label}” must be a valid email.`);
+        return;
+      }
+    }
+
     const result = await createRecord(projectId, selected.id, recordDraft);
     if (!result.ok) {
       setMessage(result.message);
@@ -209,14 +273,19 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
         </div>
 
         <div className="vf-data-manager-tabs">
-          {['tables', 'fields', 'records'].map((item) => (
+          {[
+            { id: 'tables', label: 'Tables' },
+            { id: 'fields', label: 'Labels / Fields' },
+            { id: 'records', label: 'Data / Records' },
+            { id: 'api', label: 'API' },
+          ].map((item) => (
             <button
-              key={item}
+              key={item.id}
               type="button"
-              className={tab === item ? 'is-active' : ''}
-              onClick={() => setTab(item)}
+              className={tab === item.id ? 'is-active' : ''}
+              onClick={() => setTab(item.id)}
             >
-              {item === 'tables' ? 'Tables' : item === 'fields' ? 'Labels / Fields' : 'Data / Records'}
+              {item.label}
             </button>
           ))}
         </div>
@@ -270,6 +339,19 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                         required
                       />
                     </label>
+                    <label>
+                      First field type
+                      <select
+                        value={newFieldType}
+                        onChange={(event) => setNewFieldType(event.target.value)}
+                      >
+                        {FIELD_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     <button type="submit" className="vf-btn vf-btn-primary">
                       Create table
                     </button>
@@ -309,8 +391,8 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                     </label>
 
                     <div className="vf-data-fields">
-                      {draftFields.map((field, index) => (
-                        <div key={`${field.key}-${index}`} className="vf-data-field-row">
+                      {draftFields.map((field) => (
+                        <div key={field.id} className="vf-data-field-row">
                           <input
                             value={field.label}
                             disabled={!canEdit}
@@ -318,9 +400,16 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                             onChange={(event) => {
                               const label = event.target.value;
                               setDraftFields((current) =>
-                                current.map((item, itemIndex) =>
-                                  itemIndex === index
-                                    ? { ...item, label, key: toKey(label) }
+                                current.map((item) =>
+                                  item.id === field.id ? { ...item, label } : item,
+                                ),
+                              );
+                            }}
+                            onBlur={() => {
+                              setDraftFields((current) =>
+                                current.map((item) =>
+                                  item.id === field.id
+                                    ? { ...item, key: toKey(item.label || item.key) }
                                     : item,
                                 ),
                               );
@@ -332,8 +421,8 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                             onChange={(event) => {
                               const type = event.target.value;
                               setDraftFields((current) =>
-                                current.map((item, itemIndex) =>
-                                  itemIndex === index ? { ...item, type } : item,
+                                current.map((item) =>
+                                  item.id === field.id ? { ...item, type } : item,
                                 ),
                               );
                             }}
@@ -351,7 +440,7 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                               className="vf-mini-btn"
                               onClick={() =>
                                 setDraftFields((current) =>
-                                  current.filter((_, itemIndex) => itemIndex !== index),
+                                  current.filter((item) => item.id !== field.id),
                                 )
                               }
                             >
@@ -393,16 +482,51 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                         {(selected.fields || []).map((field) => (
                           <label key={field.key}>
                             {field.label}
-                            <input
-                              value={recordDraft[field.key] ?? ''}
-                              onChange={(event) =>
-                                setRecordDraft((current) => ({
-                                  ...current,
-                                  [field.key]: event.target.value,
-                                }))
-                              }
-                              placeholder={field.key}
-                            />
+                            <span className="vf-field-help">{field.type || 'text'}</span>
+                            {field.type === 'boolean' ? (
+                              <select
+                                value={
+                                  recordDraft[field.key] === true ||
+                                  recordDraft[field.key] === 'true'
+                                    ? 'true'
+                                    : 'false'
+                                }
+                                onChange={(event) =>
+                                  setRecordDraft((current) => ({
+                                    ...current,
+                                    [field.key]: event.target.value === 'true',
+                                  }))
+                                }
+                              >
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                              </select>
+                            ) : (
+                              <input
+                                type={inputTypeForField(field.type)}
+                                value={recordDraft[field.key] ?? ''}
+                                onChange={(event) =>
+                                  setRecordDraft((current) => ({
+                                    ...current,
+                                    [field.key]: event.target.value,
+                                  }))
+                                }
+                                placeholder={
+                                  field.type === 'email'
+                                    ? 'name@example.com'
+                                    : field.key
+                                }
+                                required={field.type === 'email'}
+                                inputMode={
+                                  field.type === 'email'
+                                    ? 'email'
+                                    : field.type === 'number'
+                                      ? 'decimal'
+                                      : undefined
+                                }
+                                autoComplete={field.type === 'email' ? 'email' : undefined}
+                              />
+                            )}
                           </label>
                         ))}
                         <button type="submit" className="vf-btn vf-btn-primary">
@@ -446,6 +570,53 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                           </tbody>
                         </table>
                       )}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {tab === 'api' ? (
+              <div className="vf-data-section">
+                {!selected ? (
+                  <p className="vf-panel-note">Select a table to view its generated CRUD API.</p>
+                ) : !apiDocs ? (
+                  <p className="vf-panel-note">Loading API docs…</p>
+                ) : (
+                  <>
+                    <h4>Auto API for “{apiDocs.table?.name || selected.name}”</h4>
+                    <p className="vf-panel-note">
+                      These endpoints are created automatically for this table. Send a Bearer JWT
+                      unless noted as public.
+                    </p>
+                    <div className="vf-api-docs">
+                      {(apiDocs.endpoints || []).map((endpoint) => (
+                        <article key={endpoint.id} className="vf-api-endpoint">
+                          <div className="vf-api-endpoint-head">
+                            <span className={`vf-api-method vf-api-method-${endpoint.method.toLowerCase()}`}>
+                              {endpoint.method}
+                            </span>
+                            <code className="vf-api-path">{endpoint.path}</code>
+                            <button
+                              type="button"
+                              className="vf-mini-btn"
+                              onClick={() => {
+                                navigator.clipboard?.writeText(endpoint.path);
+                                setMessage(`Copied ${endpoint.method} path.`);
+                              }}
+                            >
+                              Copy
+                            </button>
+                          </div>
+                          <p>{endpoint.summary}</p>
+                          <p className="vf-api-auth">{endpoint.auth}</p>
+                          {endpoint.sampleBody ? (
+                            <pre className="vf-api-sample">
+                              {JSON.stringify(endpoint.sampleBody, null, 2)}
+                            </pre>
+                          ) : null}
+                        </article>
+                      ))}
                     </div>
                   </>
                 )}

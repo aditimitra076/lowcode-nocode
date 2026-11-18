@@ -85,3 +85,15 @@ export function updateNode(nodes, id, updater) {
 export function countNodes(nodes) {
   return (nodes || []).reduce((total, node) => total + 1 + countNodes(node.children), 0);
 }
+
+/** Deep-clone a component tree with fresh ids (for duplicate). */
+export function cloneNode(node) {
+  if (!node) return null;
+  return {
+    ...node,
+    id: createId(node.type || 'cmp'),
+    props: { ...(node.props || {}) },
+    style: { ...(node.style || {}) },
+    children: (node.children || []).map((child) => cloneNode(child)),
+  };
+}

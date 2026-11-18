@@ -16,6 +16,31 @@ async function req(path, { method = 'GET', token, body } = {}) {
   return data
 }
 
+async function uploadReq(token, fileName, bytes, mimeType) {
+  const form = new FormData()
+  form.append('file', new Blob([bytes], { type: mimeType }), fileName)
+  const response = await fetch(`${API}/api/uploads`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(`POST /api/uploads -> ${response.status} ${data.message || ''}`)
+  }
+  return data
+}
+
+// 1x1 PNG
+const TINY_PNG = Uint8Array.from(
+  Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+)
+
 function page(id = 'page1') {
   return {
     id,
@@ -110,13 +135,32 @@ try {
   const tableId = table.table.id
   console.log('UC05 create table ok', tableId)
 
+  const docs = await req(`/api/projects/${projectId}/tables/${tableId}/docs`, { token })
+  if (!docs.docs?.endpoints?.length) throw new Error('table docs missing endpoints')
+  console.log('UC05 table API docs ok', docs.docs.endpoints.length)
+
+  const uploaded = await uploadReq(token, 'dot.png', TINY_PNG, 'image/png')
+  if (!uploaded.url || !String(uploaded.url).startsWith('/uploads/')) {
+    throw new Error('upload missing url')
+  }
+  const asset = await fetch(`${API}${uploaded.url}`)
+  if (!asset.ok) throw new Error('uploaded file not served')
+  console.log('UC04 image upload ok', uploaded.url)
+
   pages[0].components[0].props.tableId = tableId
+  pages[0].components.push({
+    id: 'img1',
+    type: 'image',
+    props: { src: uploaded.url, alt: 'Smoke', align: 'center' },
+    style: { width: '100%', maxWidth: '120px' },
+    children: [],
+  })
   await req(`/api/projects/${projectId}`, {
     method: 'PUT',
     token,
     body: { pages },
   })
-  console.log('UC04 bind form ok')
+  console.log('UC04 bind form + image ok')
 
   await req(`/api/projects/${projectId}/collaborators`, {
     method: 'POST',

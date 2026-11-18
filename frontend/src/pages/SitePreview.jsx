@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { fetchListing } from '../api/marketplaceApi';
 import { StaticNode } from '../components/builder/ComponentNode';
 import { useBuilderStore } from '../store/builderStore';
+import './Builder.css';
 import './SitePreview.css';
 
 export default function SitePreview() {
@@ -10,9 +11,10 @@ export default function SitePreview() {
   const navigate = useNavigate();
   const [listing, setListing] = useState(null);
   const [pages, setPages] = useState([]);
-  const [activePageId, setActivePageId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const activePageId = useBuilderStore((state) => state.activePageId);
+  const setActivePage = useBuilderStore((state) => state.setActivePage);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,9 +35,7 @@ export default function SitePreview() {
       const nextPages = result.data.pages || nextListing.pages || [];
       setListing(nextListing);
       setPages(nextPages);
-      setActivePageId(nextPages[0]?.id || null);
 
-      // Reuse the builder preview renderer (forms work in preview mode).
       useBuilderStore.setState({
         projectId: nextListing.projectId || 'draft',
         projectName: nextListing.name || 'Published site',
@@ -64,15 +64,17 @@ export default function SitePreview() {
   return (
     <div className="vf-site">
       <header className="vf-site-bar">
-        <div className="vf-site-bar-left">
-          <button type="button" className="vf-site-back" onClick={() => navigate('/marketplace')}>
-            ← Marketplace
-          </button>
-          <div>
-            <h1>{listing?.name || 'Published site'}</h1>
-            <p>{listing?.developer?.name ? `By ${listing.developer.name}` : 'Live blueprint preview'}</p>
-          </div>
+        <button type="button" className="vf-site-back" onClick={() => navigate('/marketplace')}>
+          ← Marketplace
+        </button>
+
+        <div className="vf-site-bar-center">
+          <strong className="vf-site-name">{listing?.name || 'Published site'}</strong>
+          {listing?.developer?.name ? (
+            <span className="vf-site-by">by {listing.developer.name}</span>
+          ) : null}
         </div>
+
         {pages.length > 1 ? (
           <nav className="vf-site-pages" aria-label="Site pages">
             {pages.map((page) => (
@@ -80,13 +82,15 @@ export default function SitePreview() {
                 key={page.id}
                 type="button"
                 className={page.id === activePage?.id ? 'is-active' : ''}
-                onClick={() => setActivePageId(page.id)}
+                onClick={() => setActivePage(page.id)}
               >
                 {page.name}
               </button>
             ))}
           </nav>
-        ) : null}
+        ) : (
+          <span className="vf-site-bar-spacer" aria-hidden="true" />
+        )}
       </header>
 
       <main className="vf-site-stage">
@@ -97,23 +101,12 @@ export default function SitePreview() {
         ) : !activePage ? (
           <div className="vf-site-state">This site has no pages yet.</div>
         ) : (
-          <div className="vf-site-frame">
-            <div className="vf-site-chrome">
-              <span />
-              <span />
-              <span />
-              <code>
-                {listing?.name || 'site'}
-                {activePage.path || '/'}
-              </code>
-            </div>
-            <div className="vf-site-page vf-canvas vf-canvas--preview">
-              {(activePage.components || []).length === 0 ? (
-                <div className="vf-site-state">This page is empty.</div>
-              ) : (
-                (activePage.components || []).map((node) => <StaticNode key={node.id} node={node} />)
-              )}
-            </div>
+          <div className="vf-site-page">
+            {(activePage.components || []).length === 0 ? (
+              <div className="vf-site-state">This page is empty.</div>
+            ) : (
+              (activePage.components || []).map((node) => <StaticNode key={node.id} node={node} />)
+            )}
           </div>
         )}
       </main>

@@ -60,6 +60,19 @@ function PaletteIcon({ name }) {
           <rect x="7" y="3" width="10" height="18" rx="1" />
         </svg>
       );
+    case 'spacer':
+      return (
+        <svg {...common}>
+          <path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4" />
+        </svg>
+      );
+    case 'divider':
+      return (
+        <svg {...common}>
+          <path d="M4 12h16" />
+          <path d="M7 8h10M7 16h10" opacity="0.35" />
+        </svg>
+      );
     case 'card':
       return (
         <svg {...common}>

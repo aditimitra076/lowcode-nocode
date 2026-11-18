@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 import Project from '../modules/Project.js'
 import DataTable from '../modules/DataTable.js'
 import TableRecord from '../modules/TableRecord.js'
+import { coerceRecordData } from '../utils/fieldData.js'
 
 function findNode(nodes, id) {
   for (const node of nodes || []) {
@@ -10,17 +11,6 @@ function findNode(nodes, id) {
     if (nested) return nested
   }
   return null
-}
-
-function pickRecordData(fields, payload) {
-  const source = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {}
-  const data = {}
-  for (const field of fields) {
-    if (Object.prototype.hasOwnProperty.call(source, field.key)) {
-      data[field.key] = source[field.key]
-    }
-  }
-  return data
 }
 
 /**
@@ -60,7 +50,10 @@ export async function submitPublicForm(req, res, next) {
     }
 
     const payload = req.body?.data ?? req.body
-    const data = pickRecordData(table.fields, payload)
+    const { data, errors } = coerceRecordData(table.fields, payload)
+    if (errors.length) {
+      return res.status(400).json({ message: errors[0] })
+    }
     if (!Object.keys(data).length) {
       return res.status(400).json({ message: 'No valid fields were submitted.' })
     }
