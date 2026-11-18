@@ -60,3 +60,27 @@ export function updateProject(projectId, { name, pages }) {
     body: JSON.stringify({ name, pages }),
   });
 }
+
+export function deleteProject(projectId) {
+  return request(`/api/projects/${encodeURIComponent(projectId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export function fetchCollaborators(projectId) {
+  return request(`/api/projects/${encodeURIComponent(projectId)}/collaborators`);
+}
+
+export function addCollaborator(projectId, { email, role }) {
+  return request(`/api/projects/${encodeURIComponent(projectId)}/collaborators`, {
+    method: 'POST',
+    body: JSON.stringify({ email, role }),
+  });
+}
+
+export function removeCollaborator(projectId, userId) {
+  return request(
+    `/api/projects/${encodeURIComponent(projectId)}/collaborators/${encodeURIComponent(userId)}`,
+    { method: 'DELETE' },
+  );
+}

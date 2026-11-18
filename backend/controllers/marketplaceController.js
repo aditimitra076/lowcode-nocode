@@ -3,7 +3,9 @@ import Project from '../modules/Project.js'
 import User from '../modules/User.js'
 import DeveloperProfile from '../modules/DeveloperProfile.js'
 import MarketplaceListing from '../modules/MarketplaceListing.js'
+import { logActivity } from '../modules/ActivityLog.js'
 import { countComponents } from './projectController.js'
+import { isOwner } from '../utils/projectAccess.js'
 
 const MAX_PUBLIC_LISTINGS = 100
 
@@ -277,10 +279,23 @@ export async function createOrUpdateListing(req, res, next) {
   }
 
   try {
-    const project = await Project.findOne({ _id: projectId, owner: req.user.id })
-    if (!project) {
+    const project = await Project.findById(projectId)
+    if (!project || !isOwner(project, req.user.id)) {
       return res.status(404).json({ message: 'Project not found.' })
     }
+
+    await DeveloperProfile.findOneAndUpdate(
+      { user: req.user.id },
+      {
+        $setOnInsert: {
+          user: req.user.id,
+          displayName: req.user.name,
+          contactEmail: req.user.email,
+          availableForHire: true,
+        },
+      },
+      { upsert: true, new: true },
+    )
 
     const shouldSubmit = Boolean(submit)
     const update = {
@@ -301,6 +316,13 @@ export async function createOrUpdateListing(req, res, next) {
         : { $set: update },
       { new: true, upsert: true, setDefaultsOnInsert: true, runValidators: true },
     )
+
+    await logActivity({
+      actor: req.user.id,
+      action: shouldSubmit ? 'listing.submit' : 'listing.save',
+      target: listing.id,
+      meta: { projectId: String(project._id), status: listing.status },
+    })
 
     const [serialized] = await enrichListings([listing])
     return res.json({ listing: serialized })
@@ -365,6 +387,13 @@ export async function reviewListing(req, res, next) {
     listing.reviewedAt = new Date()
     listing.rejectionReason = action === 'reject' ? normalizedReason : null
     await listing.save()
+
+    await logActivity({
+      actor: req.user.id,
+      action: action === 'approve' ? 'listing.approve' : 'listing.reject',
+      target: listing.id,
+      meta: { reason: listing.rejectionReason || undefined },
+    })
 
     const [serialized] = await enrichListings([listing])
     return res.json({ listing: serialized })

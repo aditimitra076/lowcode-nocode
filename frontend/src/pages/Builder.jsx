@@ -11,10 +11,16 @@ import {
 import Palette from '../components/builder/Palette';
 import Canvas from '../components/builder/Canvas';
 import PropertyPanel from '../components/builder/PropertyPanel';
+import TablesPanel from '../components/builder/TablesPanel';
+import CollaboratorsPanel from '../components/builder/CollaboratorsPanel';
+import DataManager from '../components/builder/DataManager';
 import { COMPONENT_DEFS } from '../builder/componentRegistry';
 import { containsNode, findNode, findParentInfo } from '../builder/treeUtils';
 import { useActivePage, useBuilderStore } from '../store/builderStore';
+import { createListing } from '../api/marketplaceApi';
 import './Builder.css';
+
+const OBJECT_ID = /^[a-f0-9]{24}$/i;
 
 function currentPage(state) {
   return state.pages.find((page) => page.id === state.activePageId) || state.pages[0];
@@ -24,8 +30,6 @@ function rectArea(rect) {
   return rect ? rect.width * rect.height : Number.POSITIVE_INFINITY;
 }
 
-// Nested droppables overlap, so prefer the smallest one under the pointer:
-// that is the innermost component or container the user is aiming at.
 function collisionDetection(args) {
   const collisions = pointerWithin(args);
   if (collisions.length < 2) return collisions;
@@ -35,7 +39,6 @@ function collisionDetection(args) {
   );
 }
 
-// Works out where the dragged item would land, based on the element under the pointer.
 function resolveTarget(over, activeId) {
   const state = useBuilderStore.getState();
   const page = currentPage(state);
@@ -81,17 +84,22 @@ export default function Builder() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const projectName = useBuilderStore((state) => state.projectName);
+  const storeProjectId = useBuilderStore((state) => state.projectId);
   const pages = useBuilderStore((state) => state.pages);
   const activePageId = useBuilderStore((state) => state.activePageId);
   const viewport = useBuilderStore((state) => state.viewport);
   const previewing = useBuilderStore((state) => state.previewing);
   const savedAt = useBuilderStore((state) => state.savedAt);
   const loadError = useBuilderStore((state) => state.loadError);
+  const isOwner = useBuilderStore((state) => state.isOwner);
+  const accessRole = useBuilderStore((state) => state.accessRole);
   const loadProject = useBuilderStore((state) => state.loadProject);
   const saveProject = useBuilderStore((state) => state.saveProject);
   const setProjectName = useBuilderStore((state) => state.setProjectName);
   const setActivePage = useBuilderStore((state) => state.setActivePage);
   const addPage = useBuilderStore((state) => state.addPage);
+  const renamePage = useBuilderStore((state) => state.renamePage);
+  const removePage = useBuilderStore((state) => state.removePage);
   const setViewport = useBuilderStore((state) => state.setViewport);
   const togglePreview = useBuilderStore((state) => state.togglePreview);
   const setDropTarget = useBuilderStore((state) => state.setDropTarget);
@@ -100,10 +108,15 @@ export default function Builder() {
   const [activeLabel, setActiveLabel] = useState(null);
   const [saveStatus, setSaveStatus] = useState('idle');
   const [saveMessage, setSaveMessage] = useState('');
+  const [showPublish, setShowPublish] = useState(false);
+  const [showDataManager, setShowDataManager] = useState(false);
+  const [publishDescription, setPublishDescription] = useState('');
+  const [publishTags, setPublishTags] = useState('');
+  const [publishStatus, setPublishStatus] = useState('');
   const saveTimer = useRef(null);
+  const canEditData = isOwner || accessRole === 'Editor';
 
   useEffect(() => {
-    // The dashboard title is only a fallback for projects that are not saved yet.
     loadProject(projectId, location.state?.projectName);
   }, [projectId, loadProject, location.state]);
 
@@ -185,11 +198,45 @@ export default function Builder() {
 
     setSaveStatus('saved');
     setSaveMessage('');
-    // A brand-new project now has a server id; put it in the URL.
     if (result.projectId !== projectId) {
       navigate(`/builder/${result.projectId}`, { replace: true });
     }
     saveTimer.current = window.setTimeout(() => setSaveStatus('idle'), 2500);
+  };
+
+  const handlePublish = async (event) => {
+    event.preventDefault();
+    setPublishStatus('Publishing…');
+    let id = storeProjectId;
+    if (!/^[a-f0-9]{24}$/i.test(id)) {
+      const saved = await saveProject();
+      if (!saved.ok) {
+        setPublishStatus(saved.message);
+        return;
+      }
+      id = saved.projectId;
+      navigate(`/builder/${id}`, { replace: true });
+    }
+
+    const result = await createListing({
+      projectId: id,
+      description: publishDescription.trim(),
+      tags: publishTags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      submit: true,
+    });
+
+    if (!result.ok) {
+      setPublishStatus(result.message);
+      return;
+    }
+
+    setPublishDescription('');
+    setPublishTags('');
+    setPublishStatus('');
+    setShowPublish(false);
   };
 
   return (
@@ -238,6 +285,18 @@ export default function Builder() {
             {previewing ? 'Back to editor' : 'Preview'}
           </button>
 
+          {OBJECT_ID.test(storeProjectId) ? (
+            <button type="button" className="vf-btn" onClick={() => setShowDataManager(true)}>
+              Data
+            </button>
+          ) : null}
+
+          {isOwner ? (
+            <button type="button" className="vf-btn" onClick={() => setShowPublish(true)}>
+              Publish
+            </button>
+          ) : null}
+
           <button
             type="button"
             className="vf-btn vf-btn-primary"
@@ -278,20 +337,46 @@ export default function Builder() {
                 </div>
                 <div className="vf-pages-list">
                   {pages.map((item) => (
-                    <button
-                      type="button"
+                    <div
                       key={item.id}
                       className={`vf-page-item${item.id === activePageId ? ' is-active' : ''}`}
-                      onClick={() => setActivePage(item.id)}
                     >
-                      <span>{item.name}</span>
-                      <span className="vf-page-item-path">{item.path}</span>
-                    </button>
+                      <button
+                        type="button"
+                        className="vf-page-item-main"
+                        onClick={() => setActivePage(item.id)}
+                      >
+                        <input
+                          value={item.name}
+                          aria-label="Page name"
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => renamePage(item.id, { name: event.target.value })}
+                        />
+                        <input
+                          value={item.path}
+                          aria-label="Page path"
+                          className="vf-page-item-path"
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => renamePage(item.id, { path: event.target.value })}
+                        />
+                      </button>
+                      {pages.length > 1 ? (
+                        <button
+                          type="button"
+                          className="vf-mini-btn"
+                          onClick={() => removePage(item.id)}
+                        >
+                          ×
+                        </button>
+                      ) : null}
+                    </div>
                   ))}
                 </div>
               </div>
 
               <Palette />
+              <TablesPanel onOpenManager={() => setShowDataManager(true)} />
+              <CollaboratorsPanel />
             </aside>
           )}
 
@@ -310,6 +395,47 @@ export default function Builder() {
           {activeLabel ? <div className="vf-drag-chip">{activeLabel}</div> : null}
         </DragOverlay>
       </DndContext>
+
+      {showPublish ? (
+        <div className="vf-modal-overlay" onClick={() => setShowPublish(false)}>
+          <form
+            className="vf-modal-card"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={handlePublish}
+          >
+            <h3>Publish to marketplace</h3>
+            <p>Submit this project for administrator review.</p>
+            <textarea
+              rows={4}
+              value={publishDescription}
+              onChange={(event) => setPublishDescription(event.target.value)}
+              placeholder="Description"
+              required
+            />
+            <input
+              value={publishTags}
+              onChange={(event) => setPublishTags(event.target.value)}
+              placeholder="Tags (comma separated)"
+            />
+            {publishStatus ? <p className="vf-panel-note">{publishStatus}</p> : null}
+            <div className="vf-modal-actions">
+              <button type="button" className="vf-btn" onClick={() => setShowPublish(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="vf-btn vf-btn-primary">
+                Submit for review
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      <DataManager
+        open={showDataManager}
+        projectId={storeProjectId}
+        canEdit={canEditData}
+        onClose={() => setShowDataManager(false)}
+      />
     </div>
   );
 }

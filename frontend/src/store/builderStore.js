@@ -34,6 +34,8 @@ function emptyProject(projectName = 'Untitled Project') {
     previewing: false,
     dropTarget: null,
     savedAt: null,
+    isOwner: true,
+    accessRole: 'Owner',
   };
 }
 
@@ -49,6 +51,8 @@ export const useBuilderStore = create((set, get) => ({
   savedAt: null,
   loading: false,
   loadError: null,
+  isOwner: true,
+  accessRole: 'Owner',
 
   setProjectName(projectName) {
     set({ projectName });
@@ -65,6 +69,40 @@ export const useBuilderStore = create((set, get) => ({
         pages: [...state.pages, page],
         activePageId: page.id,
         selectedId: null,
+      };
+    });
+  },
+
+  renamePage(pageId, patch = {}) {
+    set((state) => ({
+      pages: state.pages.map((page) => {
+        if (page.id !== pageId) return page;
+        return {
+          ...page,
+          name:
+            typeof patch.name === 'string' && patch.name.trim()
+              ? patch.name.trim().slice(0, 80)
+              : page.name,
+          path:
+            typeof patch.path === 'string' && patch.path.trim()
+              ? patch.path.trim().slice(0, 200)
+              : page.path,
+        };
+      }),
+    }));
+  },
+
+  removePage(pageId) {
+    set((state) => {
+      if (state.pages.length <= 1) return state;
+      const pages = state.pages.filter((page) => page.id !== pageId);
+      const activePageId =
+        state.activePageId === pageId ? pages[0].id : state.activePageId;
+      return {
+        pages,
+        activePageId,
+        selectedId: null,
+        dropTarget: null,
       };
     });
   },
@@ -239,6 +277,8 @@ export const useBuilderStore = create((set, get) => ({
       viewport: 'desktop',
       loading: false,
       savedAt: project.updatedAt || null,
+      isOwner: project.isOwner !== false,
+      accessRole: project.accessRole || (project.isOwner === false ? 'Viewer' : 'Owner'),
     });
   },
 

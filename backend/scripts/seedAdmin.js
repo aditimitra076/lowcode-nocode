@@ -1,8 +1,10 @@
+import dns from 'dns'
 import dotenv from 'dotenv'
 import mongoose from 'mongoose'
 import { fileURLToPath } from 'node:url'
 import User from '../modules/User.js'
 
+dns.setServers(['1.1.1.1', '8.8.8.8'])
 dotenv.config({ path: fileURLToPath(new URL('../.env', import.meta.url)) })
 
 const email = 'admin@vf.test'

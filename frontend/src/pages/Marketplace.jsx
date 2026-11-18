@@ -15,9 +15,7 @@ import {
   AlertCircleIcon,
 } from '../components/ui/Icons';
 import { getStoredUser } from '../api/authApi';
-import { createProject } from '../api/projectApi';
 import { cloneListing, fetchListing, fetchListings } from '../api/marketplaceApi';
-import { getSampleListings, getSampleTemplatePages } from '../data/marketplaceTemplates';
 import './Marketplace.css';
 
 function normalizeDeveloper(developer = {}) {
@@ -106,7 +104,6 @@ export default function Marketplace() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [usingFallback, setUsingFallback] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
   const [selected, setSelected] = useState(null);
@@ -121,33 +118,12 @@ export default function Marketplace() {
     const result = await fetchListings();
 
     if (result.ok) {
-      const fetched = result.data.listings || [];
-
-      // No published blueprints yet: keep the marketplace useful with the
-      // built-in approved templates instead of an empty page.
-      if (!fetched.length) {
-        setListings(getSampleListings().map(normalizeListing));
-        setUsingFallback(true);
-        setLoading(false);
-        return;
-      }
-
-      setListings(fetched.map(normalizeListing));
-      setUsingFallback(false);
-      setLoading(false);
-      return;
-    }
-
-    // Backend offline: keep the marketplace browsable with built-in blueprints.
-    if (result.status === 0) {
-      setListings(getSampleListings().map(normalizeListing));
-      setUsingFallback(true);
+      setListings((result.data.listings || []).map(normalizeListing));
       setLoading(false);
       return;
     }
 
     setListings([]);
-    setUsingFallback(false);
     setLoadError(result.message);
     setLoading(false);
   }, []);
@@ -191,16 +167,6 @@ export default function Marketplace() {
   }, [listings, searchTerm, selectedTag]);
 
   const openDetails = useCallback(async (project) => {
-    if (project.isSample) {
-      setSelected({
-        listing: project,
-        pages: getSampleTemplatePages(project.id) || [],
-        loading: false,
-        error: null,
-      });
-      return;
-    }
-
     setSelected({ listing: project, pages: [], loading: true, error: null });
 
     const result = await fetchListing(project.id);
@@ -238,24 +204,11 @@ export default function Marketplace() {
       setCloneId(project.id);
 
       try {
-        let result;
-
-        if (project.isSample) {
-          const pages = getSampleTemplatePages(project.id);
-          if (!pages) {
-            setActionMessage({ type: 'error', text: 'This template is no longer available.' });
-            return;
-          }
-          result = await createProject({ name: `${project.name} (Template)`, pages });
-        } else {
-          result = await cloneListing(project.id);
-        }
-
+        const result = await cloneListing(project.id);
         if (!result.ok) {
           setActionMessage({ type: 'error', text: result.message });
           return;
         }
-
         navigate(`/builder/${result.data.project.id}`, { replace: true });
       } finally {
         setCloneId(null);
@@ -273,27 +226,22 @@ export default function Marketplace() {
         <header className="vf-market-navbar">
           <div className="vf-market-brand" onClick={() => navigate('/')}>
             <div className="vf-market-logo-box">
-              <CubeIcon className="vf-icon-cube" stroke="#c4b5fd" />
+              <CubeIcon className="vf-icon-cube" stroke="#0b0b0c" />
             </div>
             <div>
               <div className="vf-market-brand-title">VisualForge Studio</div>
-              <div className="vf-market-brand-sub">Developer Marketplace (FR-41)</div>
+              <div className="vf-market-brand-sub">Developer marketplace</div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="vf-market-nav-actions">
             {user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+              <div className="vf-market-nav-user">
+                <span className="vf-market-user-label">
                   Logged in as <strong>{user.name}</strong>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => navigate('/')}
-                  className="vf-nav-primary-btn"
-                  style={{ padding: '7px 13px', fontSize: '12px' }}
-                >
-                  My Workspace (FR-04)
+                <button type="button" onClick={() => navigate('/')} className="vf-nav-primary-btn">
+                  My workspace
                 </button>
               </div>
             ) : (
@@ -303,44 +251,29 @@ export default function Marketplace() {
                 className="vf-nav-primary-btn"
               >
                 <SignInIcon className="vf-icon-tab" />
-                <span>Sign In to Workspace (FR-02)</span>
+                <span>Sign in</span>
               </button>
             )}
           </div>
         </header>
 
-        {/* Hero Section */}
         <section className="vf-market-hero">
           <div className="vf-visitor-badge">
             <StoreIcon className="vf-icon-store" color="#10b981" />
-            <span>PUBLIC VISITOR ACCESS • NO AUTH REQUIRED (FR-41)</span>
+            <span>Public access · no login required</span>
           </div>
-          <h1 className="vf-market-hero-title">
-            Explore Verified Blueprints & Schema Blueprints
-          </h1>
+          <h1 className="vf-market-hero-title">Explore verified blueprints</h1>
           <p className="vf-market-hero-desc">
-            Inspect live MongoDB schema components and public microservice blueprints built by
-            verified developers and approved by administrators (FR-46). Open a blueprint to see the
-            developer's contact details and use it as your starting template (FR-43).
+            Browse approved projects, see the developer behind each listing, and use a blueprint as
+            the starting point of your own workspace.
           </p>
         </section>
 
-        {usingFallback && (
-          <div className="vf-market-notice vf-market-notice-info">
-            <AlertCircleIcon className="vf-icon-contact" color="#38bdf8" />
-            <span>
-              No live approved blueprints were returned — showing the built-in approved blueprints
-              below. Sign in with the API online to save one into your workspace.
-            </span>
-          </div>
-        )}
-
-        {/* Search & Filter Bar (FR-42) */}
         <section className="vf-market-filters-row">
           <input
             type="text"
             className="vf-search-input"
-            placeholder="Search templates, schemas, developers or contacts (FR-42)..."
+            placeholder="Search templates, developers or tags…"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />
@@ -351,12 +284,7 @@ export default function Marketplace() {
                 key={tag}
                 type="button"
                 onClick={() => setSelectedTag(tag)}
-                className="vf-tag-chip"
-                style={{
-                  background: selectedTag === tag ? '#1e2638' : '#121824',
-                  borderColor: selectedTag === tag ? '#6366f1' : 'rgba(255, 255, 255, 0.08)',
-                  color: selectedTag === tag ? '#ffffff' : '#94a3b8',
-                }}
+                className={`vf-tag-chip${selectedTag === tag ? ' is-active' : ''}`}
               >
                 {tag}
               </button>
@@ -393,7 +321,7 @@ export default function Marketplace() {
                   >
                     <span className="vf-market-pill">BaaS Blueprint</span>
                     <span className="vf-market-verified">
-                      <span className="vf-market-verified-dot">●</span> Verified (FR-46)
+                      <span className="vf-market-verified-dot">●</span> Verified
                     </span>
                   </div>
 
@@ -401,7 +329,7 @@ export default function Marketplace() {
 
                   <div className="vf-market-byline">
                     By <span>{proj.developer.name}</span>
-                    {proj.developer.title ? ` · ${proj.developer.title}` : ''} (FR-43)
+                    {proj.developer.title ? ` · ${proj.developer.title}` : ''}
                   </div>
 
                   <p className="vf-market-description">{proj.description}</p>
@@ -449,9 +377,16 @@ export default function Marketplace() {
 
                   <div className="vf-market-card-footer">
                     <span className="vf-market-counts">
-                      {proj.pagesCount} Pages • {proj.tablesCount} CRUD Tables
+                      {proj.pagesCount} pages · {proj.tablesCount} tables
                     </span>
                     <div className="vf-market-card-actions">
+                      <button
+                        type="button"
+                        className="vf-market-ghost-btn"
+                        onClick={() => navigate(`/site/${proj.id}`)}
+                      >
+                        Visit
+                      </button>
                       <button
                         type="button"
                         className="vf-market-ghost-btn"
@@ -510,7 +445,7 @@ export default function Marketplace() {
             ) : (
               <>
                 <div className="vf-market-modal-head">
-                  <div className="vf-market-pill">Approved Blueprint (FR-46)</div>
+                  <div className="vf-market-pill">Approved blueprint</div>
                   <h2>{selected.listing.name}</h2>
                   <p>{selected.listing.description}</p>
                 </div>
@@ -526,7 +461,7 @@ export default function Marketplace() {
                   </div>
                   <div className="vf-market-stat">
                     <strong>{selected.listing.tablesCount}</strong>
-                    <span>CRUD Tables</span>
+                    <span>Tables</span>
                   </div>
                   <div className="vf-market-stat">
                     <strong>{selected.listing.screenshots.length}</strong>
@@ -658,6 +593,13 @@ export default function Marketplace() {
                 </section>
 
                 <div className="vf-market-modal-actions">
+                  <button
+                    type="button"
+                    className="vf-market-ghost-btn"
+                    onClick={() => navigate(`/site/${selected.listing.id}`)}
+                  >
+                    Visit site
+                  </button>
                   <button
                     type="button"
                     className="vf-market-clone-btn vf-market-clone-btn-lg"

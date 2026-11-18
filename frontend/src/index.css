@@ -1,69 +1,100 @@
-/* VisualForge Studio - Global Base Styles */
+/* VisualForge Studio — shared foundation */
 
 :root {
-  --vf-bg: #0b0f17;
-  --vf-bg-card: #121824;
-  --vf-border: rgba(255, 255, 255, 0.08);
-  --vf-text: #f8fafc;
-  --vf-text-muted: #94a3b8;
-  --vf-primary: #6366f1;
-  --vf-primary-hover: #4f46e5;
-  --vf-emerald: #10b981;
-  --vf-cyan: #38bdf8;
-  
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  line-height: 1.5;
+  --vf-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  --vf-font-display: 'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+
+  --vf-bg: #ffffff;
+  --vf-bg-soft: #f6f6f2;
+  --vf-bg-card: #ffffff;
+  --vf-ink: #0b0b0c;
+  --vf-ink-soft: #26262a;
+  --vf-muted: #4a4a52;
+  --vf-faint: #6f6f78;
+  --vf-border: #e4e4df;
+  --vf-border-strong: #d0d0c8;
+  --vf-blue: #116dff;
+  --vf-blue-hover: #0b5ae0;
+  --vf-green: #0f8a5f;
+  --vf-danger: #b42318;
+  --vf-danger-bg: #fef3f2;
+
+  --vf-studio-bg: #0b0f17;
+  --vf-studio-panel: #121824;
+  --vf-studio-text: #f8fafc;
+  --vf-studio-muted: #b6c0d1;
+  --vf-studio-border: rgba(255, 255, 255, 0.12);
+  --vf-studio-primary: #4f7cff;
+
+  --vf-space-1: 4px;
+  --vf-space-2: 8px;
+  --vf-space-3: 12px;
+  --vf-space-4: 16px;
+  --vf-space-5: 24px;
+  --vf-space-6: 32px;
+  --vf-space-7: 48px;
+
+  --vf-radius: 12px;
+  --vf-radius-lg: 18px;
+  --vf-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+
+  --vf-text-xs: 0.9375rem; /* 15px */
+  --vf-text-sm: 1rem; /* 16px */
+  --vf-text-md: 1.125rem; /* 18px */
+  --vf-text-lg: 1.375rem; /* 22px */
+  --vf-text-xl: 1.75rem; /* 28px */
+  --vf-text-2xl: 2.25rem; /* 36px */
+  --vf-text-3xl: clamp(2.4rem, 4vw, 3.25rem);
+
+  --vf-touch: 48px;
+  --vf-page-pad: clamp(20px, 3vw, 40px);
+  --vf-content-max: 1480px;
+
+  font-family: var(--vf-font);
+  font-size: 17px;
+  line-height: 1.55;
   font-weight: 400;
-
-  color-scheme: dark;
-  color: var(--vf-text);
+  color: var(--vf-ink);
   background-color: var(--vf-bg);
-
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100%;
+  min-height: 100%;
   min-height: 100vh;
-  background-color: #0b0f17;
-  color: #f8fafc;
+  min-height: 100dvh;
+}
+
+body {
+  background: var(--vf-bg);
+  color: var(--vf-ink);
 }
 
 #root {
-  min-height: 100vh;
-  width: 100%;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
 }
 
-/* Custom Scrollbar for modern studio look */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0b0f17;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #1e2638;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #2b364d;
+img,
+svg {
+  max-width: 100%;
 }
 
 a {
@@ -71,6 +102,77 @@ a {
   text-decoration: none;
 }
 
-input, button, textarea, select {
-  font-family: inherit;
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--vf-blue);
+  outline-offset: 3px;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vf-bg-soft);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c8c8c0;
+  border-radius: 999px;
+  border: 3px solid var(--vf-bg-soft);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a0;
+}
+
+.vf-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  background: var(--vf-bg);
+  color: var(--vf-ink);
+  font-family: var(--vf-font);
+}
+
+.vf-shell-inner {
+  width: 100%;
+  max-width: var(--vf-content-max);
+  margin: 0 auto;
+  padding: var(--vf-page-pad);
+}
+
+.vf-page-title {
+  font-family: var(--vf-font-display);
+  font-size: var(--vf-text-3xl);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  margin: 0;
+  color: var(--vf-ink);
+}
+
+.vf-page-lead {
+  font-size: var(--vf-text-md);
+  line-height: 1.6;
+  color: var(--vf-muted);
+  margin: 12px 0 0;
+  max-width: 46rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

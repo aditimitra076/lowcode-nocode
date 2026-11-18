@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-// Component types supported by the visual builder (SRS FR-11).
+// Component types supported by the visual builder.
 export const COMPONENT_TYPES = [
   'heading',
   'text',
@@ -15,7 +15,8 @@ export const COMPONENT_TYPES = [
   'form',
 ]
 
-// A component tree node: id, type, properties, style settings and children.
+export const COLLABORATOR_ROLES = ['Editor', 'Viewer']
+
 const componentSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, trim: true },
@@ -38,6 +39,19 @@ const pageSchema = new mongoose.Schema(
   { _id: false },
 )
 
+const collaboratorSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    email: { type: String, required: true, trim: true, lowercase: true },
+    role: { type: String, enum: COLLABORATOR_ROLES, default: 'Viewer', required: true },
+  },
+  { _id: false },
+)
+
 const projectSchema = new mongoose.Schema(
   {
     owner: {
@@ -54,6 +68,10 @@ const projectSchema = new mongoose.Schema(
     },
     pages: {
       type: [pageSchema],
+      default: [],
+    },
+    collaborators: {
+      type: [collaboratorSchema],
       default: [],
     },
   },

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../modules/User.js'
+import { logActivity } from '../modules/ActivityLog.js'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const passwordHasLetterAndNumber = (password) =>
@@ -78,6 +79,13 @@ export async function login(req, res, next) {
         message: 'Your account has been suspended. Contact support.',
       })
     }
+
+    await logActivity({
+      actor: user.id,
+      action: 'auth.login',
+      target: user.id,
+      meta: { email: user.email },
+    })
 
     return res.json({
       token: createToken(user),

@@ -8,6 +8,8 @@ import NotFound from './pages/NotFound.jsx';
 import AuthPage from './pages/AuthPage.jsx';
 import Marketplace from './pages/Marketplace.jsx';
 import Builder from './pages/Builder.jsx';
+import Admin from './pages/Admin.jsx';
+import SitePreview from './pages/SitePreview.jsx';
 
 // Browser Router
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
@@ -47,6 +49,10 @@ const router = createBrowserRouter([
     element: <Marketplace />,
   },
   {
+    path: '/site/:listingId',
+    element: <SitePreview />,
+  },
+  {
     path: '/dashboard',
     element: <Home />,
   },
@@ -57,6 +63,10 @@ const router = createBrowserRouter([
   {
     path: '/builder/:projectId',
     element: <Builder />,
+  },
+  {
+    path: '/admin',
+    element: <Admin />,
   },
   {
     path: '*',

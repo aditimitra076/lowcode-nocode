@@ -20,8 +20,8 @@ import {
   MapPinIcon,
 } from '../components/ui/Icons';
 import { getStoredUser, clearSession } from '../api/authApi';
-import { fetchProjects } from '../api/projectApi';
-import { getSampleListings } from '../data/marketplaceTemplates';
+import { fetchProjects, deleteProject } from '../api/projectApi';
+import { fetchListings } from '../api/marketplaceApi';
 import './Home.css';
 
 function formatUpdatedAt(value) {
@@ -201,8 +201,19 @@ export default function Home() {
   // null means "not loaded yet", so loading is derived instead of set in an effect.
   const [projects, setProjects] = useState(null);
   const [projectsError, setProjectsError] = useState(null);
+  const [featuredBlueprints, setFeaturedBlueprints] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
 
-  const featuredBlueprints = useMemo(() => getSampleListings().slice(0, 3), []);
+  useEffect(() => {
+    let cancelled = false;
+    fetchListings().then((result) => {
+      if (cancelled) return;
+      if (result.ok) setFeaturedBlueprints((result.data.listings || []).slice(0, 3));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const totals = useMemo(() => {
     if (!Array.isArray(projects)) return { count: 0, pages: 0, components: 0 };
@@ -218,6 +229,18 @@ export default function Home() {
     setUser(null);
     setProjects(null);
     setProjectsError(null);
+  };
+
+  const handleDeleteProject = async (project) => {
+    if (!window.confirm(`Delete project "${project.name}"? This cannot be undone.`)) return;
+    setDeletingId(project.id);
+    const result = await deleteProject(project.id);
+    setDeletingId(null);
+    if (!result.ok) {
+      setProjectsError(result.message);
+      return;
+    }
+    setProjects((current) => (current || []).filter((item) => item.id !== project.id));
   };
 
   useEffect(() => {
@@ -270,6 +293,11 @@ export default function Home() {
                     <span>{user.role}</span>
                   </span>
                 </span>
+                {user.role === 'Admin' ? (
+                  <button type="button" className="vf-ghost-btn" onClick={() => navigate('/admin')}>
+                    Admin
+                  </button>
+                ) : null}
                 <button type="button" className="vf-ghost-btn" onClick={handleLogout}>
                   Sign out
                 </button>
@@ -419,6 +447,14 @@ export default function Home() {
                       >
                         Open in builder
                         <ArrowUpRightIcon className="vf-icon-feature" />
+                      </button>
+                      <button
+                        type="button"
+                        className="vf-ghost-btn"
+                        disabled={deletingId === proj.id}
+                        onClick={() => handleDeleteProject(proj)}
+                      >
+                        {deletingId === proj.id ? 'Deleting…' : 'Delete'}
                       </button>
                     </div>
                   </article>
@@ -570,41 +606,51 @@ export default function Home() {
                   </button>
                 </div>
                 <div className="vf-split-cards">
-                  {featuredBlueprints.map((blueprint) => (
-                    <article key={blueprint.id} className="vf-blueprint-row">
-                      <div className="vf-blueprint-main">
-                        <h3>{blueprint.name}</h3>
-                        <div className="vf-blueprint-tags">
-                          {blueprint.tags.slice(0, 3).map((tag) => (
-                            <span key={tag}>#{tag}</span>
-                          ))}
+                  {featuredBlueprints.length === 0 ? (
+                    <p className="vf-muted">No approved blueprints yet. Publish a project to appear here.</p>
+                  ) : (
+                    featuredBlueprints.map((blueprint) => (
+                      <article key={blueprint.id} className="vf-blueprint-row">
+                        <div className="vf-blueprint-main">
+                          <h3>{blueprint.name}</h3>
+                          <div className="vf-blueprint-tags">
+                            {(blueprint.tags || []).slice(0, 3).map((tag) => (
+                              <span key={tag}>#{tag}</span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      <div className="vf-blueprint-dev">
-                        <span className="vf-blueprint-avatar">
-                          {initials(blueprint.developer.name)}
-                        </span>
-                        <div>
-                          <strong>{blueprint.developer.name}</strong>
-                          <span>{blueprint.developer.title}</span>
+                        <div className="vf-blueprint-dev">
+                          <span className="vf-blueprint-avatar">
+                            {initials(blueprint.developer?.name)}
+                          </span>
+                          <div>
+                            <strong>{blueprint.developer?.name || 'Developer'}</strong>
+                            <span>{blueprint.developer?.title || ''}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="vf-blueprint-contact">
-                        <span>
-                          <MailIcon className="vf-icon-contact" color="#116dff" />
-                          {blueprint.developer.contact.email}
-                        </span>
-                        <span>
-                          <PhoneIcon className="vf-icon-contact" color="#0f8a5f" />
-                          {blueprint.developer.contact.phone}
-                        </span>
-                        <span>
-                          <MapPinIcon className="vf-icon-contact" color="#7c5cff" />
-                          {blueprint.developer.contact.location}
-                        </span>
-                      </div>
-                    </article>
-                  ))}
+                        <div className="vf-blueprint-contact">
+                          {blueprint.developer?.contact?.email ? (
+                            <span>
+                              <MailIcon className="vf-icon-contact" color="#116dff" />
+                              {blueprint.developer.contact.email}
+                            </span>
+                          ) : null}
+                          {blueprint.developer?.contact?.phone ? (
+                            <span>
+                              <PhoneIcon className="vf-icon-contact" color="#0f8a5f" />
+                              {blueprint.developer.contact.phone}
+                            </span>
+                          ) : null}
+                          {blueprint.developer?.contact?.location ? (
+                            <span>
+                              <MapPinIcon className="vf-icon-contact" color="#7c5cff" />
+                              {blueprint.developer.contact.location}
+                            </span>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))
+                  )}
                 </div>
               </div>
             </section>

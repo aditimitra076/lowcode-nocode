@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   CubeIcon,
-  TerminalIcon,
   SignInIcon,
   UserPlusIcon,
   UserIcon,
@@ -10,21 +9,13 @@ import {
   KeyIcon,
   EyeIcon,
   EyeOffIcon,
-  LightningIcon,
-  GithubIcon,
-  ShieldCheckIcon,
-  StoreIcon,
-  ArrowRightIcon,
   AlertCircleIcon,
   CheckIcon,
   CloseIcon,
+  StoreIcon,
+  ArrowRightIcon,
 } from '../components/ui/Icons';
-import {
-  loginUser,
-  registerUser,
-  getStoredUser,
-  clearSession,
-} from '../api/authApi';
+import { loginUser, registerUser, getStoredUser, clearSession } from '../api/authApi';
 import './AuthPage.css';
 
 export default function AuthPage({ initialTab }) {
@@ -36,7 +27,6 @@ export default function AuthPage({ initialTab }) {
       ? location.state.from
       : '/';
 
-  // Determine active tab from URL param or initial prop
   const routeTab = (type || initialTab || '').toLowerCase();
   const isRegisterParam =
     routeTab === 'register' || routeTab === 'signup' || routeTab === 'create-account';
@@ -50,7 +40,6 @@ export default function AuthPage({ initialTab }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
-  const [showForgotModal, setShowForgotModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
 
   const handleTabSwitch = (tab) => {
@@ -62,192 +51,91 @@ export default function AuthPage({ initialTab }) {
   const handleLogout = () => {
     clearSession();
     setCurrentUser(null);
-    setAlert({ type: 'info', message: 'Signed out of workspace session.' });
+    setAlert({ type: 'info', message: 'Signed out.' });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setAlert(null);
 
     if (!email || !email.includes('@')) {
-      setAlert({
-        type: 'error',
-        message: 'Please provide a valid Identity / Work Email address.',
-      });
+      setAlert({ type: 'error', message: 'Enter a valid email address.' });
       return;
     }
-
     if (!password) {
-      setAlert({
-        type: 'error',
-        message: 'Workspace Secret is required.',
-      });
+      setAlert({ type: 'error', message: 'Password is required.' });
       return;
     }
 
     if (activeTab === 'register') {
       if (!name.trim()) {
-        setAlert({
-          type: 'error',
-          message: 'Please enter your Developer Name / Identity (FR-01).',
-        });
+        setAlert({ type: 'error', message: 'Enter your name.' });
         return;
       }
-      if (
-        password.length < 8 ||
-        !/[A-Za-z]/.test(password) ||
-        !/\d/.test(password)
-      ) {
+      if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
         setAlert({
           type: 'error',
-          message:
-            'Workspace Secret must be at least 8 characters and include both a letter and a number (FR-01).',
+          message: 'Password must be at least 8 characters and include a letter and a number.',
         });
         return;
       }
     }
 
     setLoading(true);
-
     try {
-      if (activeTab === 'login') {
-        const result = await loginUser({ email, password });
-        if (result.success) {
-          setAlert({
-            type: 'success',
-            message: 'Authenticated successfully! Initializing workspace...',
-          });
-          setCurrentUser(result.user);
-          setTimeout(() => {
-            navigate(redirectTo, { replace: true });
-          }, 850);
-        } else {
-          setAlert({
-            type: 'error',
-            message: result.message || "That email or password isn't right",
-          });
-        }
-      } else {
-        const result = await registerUser({ name, email, password });
-        if (result.success) {
-          setAlert({
-            type: 'success',
-            message: 'Developer account created (FR-01)! Redirecting to workspace...',
-          });
-          setCurrentUser(result.user);
-          setTimeout(() => {
-            navigate(redirectTo, { replace: true });
-          }, 850);
-        } else {
-          setAlert({
-            type: 'error',
-            message: result.message || 'Registration could not be completed.',
-          });
-        }
+      const result =
+        activeTab === 'login'
+          ? await loginUser({ email, password })
+          : await registerUser({ name, email, password });
+
+      if (!result.success) {
+        setAlert({ type: 'error', message: result.message || 'Could not authenticate.' });
+        return;
       }
-    } catch (err) {
+
+      setCurrentUser(result.user);
       setAlert({
-        type: 'error',
-        message: err.message || 'Connection error. Please try again.',
+        type: 'success',
+        message: activeTab === 'login' ? 'Signed in. Opening workspace…' : 'Account created. Opening workspace…',
       });
+      setTimeout(() => navigate(redirectTo, { replace: true }), 600);
+    } catch (error) {
+      setAlert({ type: 'error', message: error.message || 'Connection error. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGithubFederate = () => {
-    setAlert({
-      type: 'info',
-      message: 'GitHub OAuth Federation: connecting to authorization server...',
-    });
-    setTimeout(() => {
-      const ghUser = {
-        id: 'gh-dev-' + Date.now().toString(36),
-        name: 'GitHub Developer',
-        email: 'developer@github.local',
-        role: 'Developer',
-        status: 'Active',
-      };
-      loginUser({ email: ghUser.email, password: 'GithubOAuthPassword123' }).then((res) => {
-        if (res.success) {
-          navigate(redirectTo, { replace: true });
-        }
-      });
-    }, 600);
-  };
-
   return (
     <div className="vf-auth-wrapper">
       <div className="vf-auth-container">
-        {/* Header Section */}
         <header className="vf-auth-header">
-          {/* Logo with Green Status Dot */}
           <div className="vf-logo-badge-container">
-            <div className="vf-logo-badge" title="VisualForge Studio Engine">
-              <CubeIcon className="vf-icon-cube" stroke="#c4b5fd" />
+            <div className="vf-logo-badge" title="VisualForge Studio">
+              <CubeIcon className="vf-icon-cube" stroke="#0b0b0c" />
             </div>
-            <div
-              className="vf-status-indicator-dot"
-              title="Core Engine Online: us-east-1"
-            />
           </div>
-
           <h1 className="vf-app-title">VisualForge Studio</h1>
-          <p className="vf-app-subtitle">Visual Builder with Backend-as-a-Service</p>
-
-          {/* Engine Status Pill */}
-          <div className="vf-engine-status-pill">
-            <span className="vf-pill-green-dot" />
-            <span>CORE API ENGINE ONLINE • us-east-1</span>
-          </div>
+          <p className="vf-app-subtitle">Visual builder with backend-as-a-service</p>
         </header>
 
-        {/* Existing Session Alert if already authenticated */}
-        {currentUser && (
+        {currentUser ? (
           <div className="vf-session-banner">
             <span>
               Signed in as <strong>{currentUser.name}</strong> ({currentUser.email})
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                type="button"
-                className="vf-session-btn"
-                onClick={() => navigate('/')}
-              >
-                Go to Workspace (FR-04)
+              <button type="button" className="vf-session-btn" onClick={() => navigate('/')}>
+                Go to workspace
               </button>
-              <button
-                type="button"
-                className="vf-session-btn"
-                onClick={handleLogout}
-                style={{ opacity: 0.8 }}
-              >
-                Sign Out
+              <button type="button" className="vf-session-btn" onClick={handleLogout}>
+                Sign out
               </button>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Top Feature Card: Architectural Pipeline */}
-        <section className="vf-feature-card">
-          <div className="vf-feature-icon-badge">
-            <TerminalIcon className="vf-icon-terminal" color="#38bdf8" />
-          </div>
-          <div className="vf-feature-content">
-            <div className="vf-feature-header-row">
-              <span className="vf-feature-title">Architectural Pipeline</span>
-              <span className="vf-version-tag">v2.4</span>
-            </div>
-            <p className="vf-feature-desc">
-              Design visually, generate production MongoDB CRUD APIs, and publish
-              directly to the developer marketplace.
-            </p>
-          </div>
-        </section>
-
-        {/* Middle Main Card: Authentication Form */}
         <main className="vf-auth-card">
-          {/* Tabs: Sign In vs Create Account */}
           <div className="vf-tabs-bar" role="tablist">
             <button
               type="button"
@@ -257,7 +145,7 @@ export default function AuthPage({ initialTab }) {
               onClick={() => handleTabSwitch('login')}
             >
               <SignInIcon className="vf-icon-tab" />
-              <span>Sign In</span>
+              <span>Sign in</span>
             </button>
             <button
               type="button"
@@ -267,24 +155,22 @@ export default function AuthPage({ initialTab }) {
               onClick={() => handleTabSwitch('register')}
             >
               <UserPlusIcon className="vf-icon-tab" />
-              <span>Create Account</span>
+              <span>Create account</span>
             </button>
           </div>
 
-          {/* Feedback Alert Box */}
-          {alert && (
+          {alert ? (
             <div
               className={`vf-alert-box ${
                 alert.type === 'error'
                   ? 'vf-alert-error'
                   : alert.type === 'success'
-                  ? 'vf-alert-success'
-                  : 'vf-alert-info'
+                    ? 'vf-alert-success'
+                    : 'vf-alert-info'
               }`}
             >
-              {alert.type === 'error' && <AlertCircleIcon className="vf-icon-alert" />}
-              {alert.type === 'success' && <CheckIcon className="vf-icon-check" />}
-              {alert.type === 'info' && <ShieldCheckIcon className="vf-icon-shield" />}
+              {alert.type === 'error' ? <AlertCircleIcon className="vf-icon-alert" /> : null}
+              {alert.type === 'success' ? <CheckIcon className="vf-icon-check" /> : null}
               <span>{alert.message}</span>
               <button
                 type="button"
@@ -295,19 +181,14 @@ export default function AuthPage({ initialTab }) {
                 <CloseIcon className="vf-icon-close" />
               </button>
             </div>
-          )}
+          ) : null}
 
-          {/* Form */}
           <form className="vf-auth-form" onSubmit={handleSubmit} noValidate>
-            {/* If Create Account: Developer Name Field */}
-            {activeTab === 'register' && (
+            {activeTab === 'register' ? (
               <div className="vf-field-group">
-                <div className="vf-field-label-row">
-                  <label htmlFor="vf-dev-name" className="vf-field-label">
-                    DEVELOPER NAME / IDENTITY
-                  </label>
-                  <span className="vf-field-tag">fr-01</span>
-                </div>
+                <label htmlFor="vf-dev-name" className="vf-field-label">
+                  Name
+                </label>
                 <div className="vf-input-wrapper">
                   <UserIcon className="vf-icon-input" />
                   <input
@@ -316,54 +197,41 @@ export default function AuthPage({ initialTab }) {
                     className="vf-input"
                     placeholder="Ada Lovelace"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(event) => setName(event.target.value)}
                     autoComplete="name"
                     required
                   />
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* Field 1: Identity / Work Email */}
             <div className="vf-field-group">
-              <div className="vf-field-label-row">
-                <label htmlFor="vf-identity-email" className="vf-field-label">
-                  IDENTITY / WORK EMAIL
-                </label>
-                <span className="vf-field-tag">fr-01</span>
-              </div>
+              <label htmlFor="vf-identity-email" className="vf-field-label">
+                Email
+              </label>
               <div className="vf-input-wrapper">
                 <AtIcon className="vf-icon-input" />
                 <input
                   id="vf-identity-email"
                   type="email"
                   className="vf-input"
-                  placeholder="developer@work.io"
+                  placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
                   required
                 />
               </div>
             </div>
 
-            {/* Field 2: Workspace Secret */}
             <div className="vf-field-group">
               <div className="vf-field-label-row">
                 <label htmlFor="vf-workspace-secret" className="vf-field-label">
-                  WORKSPACE SECRET
+                  Password
                 </label>
-                {activeTab === 'login' ? (
-                  <button
-                    type="button"
-                    className="vf-forgot-link"
-                    onClick={() => setShowForgotModal(true)}
-                  >
-                    Forgot Key?
-                  </button>
-                ) : (
-                  <span className="vf-field-tag">Min 8 chars, 1 letter & 1 number</span>
-                )}
+                {activeTab === 'register' ? (
+                  <span className="vf-field-tag">Min 8 chars, letter + number</span>
+                ) : null}
               </div>
               <div className="vf-input-wrapper">
                 <KeyIcon className="vf-icon-input" />
@@ -373,7 +241,7 @@ export default function AuthPage({ initialTab }) {
                   className="vf-input"
                   placeholder="••••••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   autoComplete={activeTab === 'login' ? 'current-password' : 'new-password'}
                   required
                 />
@@ -381,8 +249,7 @@ export default function AuthPage({ initialTab }) {
                   type="button"
                   className="vf-password-toggle-btn"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide secret' : 'Show secret'}
-                  title={showPassword ? 'Hide secret' : 'Show secret'}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
                     <EyeOffIcon className="vf-icon-eye" />
@@ -393,123 +260,33 @@ export default function AuthPage({ initialTab }) {
               </div>
             </div>
 
-            {/* Primary Action Button */}
-            <button
-              type="submit"
-              className="vf-primary-btn"
-              disabled={loading}
-            >
-              <LightningIcon className="vf-icon-btn" />
+            <button type="submit" className="vf-primary-btn" disabled={loading}>
               <span>
                 {loading
-                  ? 'Authenticating...'
+                  ? 'Please wait…'
                   : activeTab === 'login'
-                  ? 'Sign In to Workspace'
-                  : 'Create Workspace Account'}
-              </span>
-              <span className="vf-btn-req-tag">
-                {activeTab === 'login' ? '(FR-02)' : '(FR-01)'}
+                    ? 'Sign in'
+                    : 'Create account'}
               </span>
             </button>
           </form>
-
-          {/* Divider: OR FEDERATE */}
-          <div className="vf-divider-row">
-            <div className="vf-divider-line" />
-            <span className="vf-divider-text">OR FEDERATE</span>
-            <div className="vf-divider-line" />
-          </div>
-
-          {/* GitHub Federation Button */}
-          <button
-            type="button"
-            className="vf-secondary-btn"
-            onClick={handleGithubFederate}
-          >
-            <GithubIcon className="vf-icon-github" />
-            <span>Continue with GitHub</span>
-          </button>
-
-          {/* Security statement: JWT session tokens (FR-03) */}
-          <div className="vf-security-note">
-            <ShieldCheckIcon className="vf-icon-shield" color="#64748b" />
-            <span>
-              By proceeding, you authenticate via JWT session tokens{' '}
-              <strong>(FR-03)</strong>.
-            </span>
-          </div>
         </main>
 
-        {/* Bottom Card: Explore Visual Templates */}
         <section className="vf-templates-card">
           <div className="vf-templates-header-row">
             <div className="vf-templates-title-group">
               <StoreIcon className="vf-icon-store" color="#38bdf8" />
-              <span className="vf-templates-title">Explore Visual Templates</span>
+              <span className="vf-templates-title">Marketplace</span>
             </div>
-            <span className="vf-no-auth-badge">No Auth</span>
+            <span className="vf-no-auth-badge">No login needed</span>
           </div>
-          <p className="vf-templates-desc">
-            Inspect live MongoDB schema components and public microservice blueprints.
-          </p>
-          <button
-            type="button"
-            className="vf-templates-link"
-            onClick={() => navigate('/marketplace')}
-          >
-            <span>Browse Public Marketplace as Visitor (FR-41)</span>
+          <p className="vf-templates-desc">Browse approved project blueprints as a visitor.</p>
+          <button type="button" className="vf-templates-link" onClick={() => navigate('/marketplace')}>
+            <span>Browse marketplace</span>
             <ArrowRightIcon className="vf-icon-arrow" />
           </button>
         </section>
-
-        {/* Footer info */}
-        <footer className="vf-auth-footer">
-          <div className="vf-footer-stack">
-            v2.4 LTS • Node.js / Express • MongoDB BaaS
-          </div>
-          <div className="vf-footer-status">
-            <span className="vf-pill-green-dot" />
-            <span>Engine status: 99.98% uptime SLA</span>
-          </div>
-        </footer>
       </div>
-
-      {/* Forgot Key Modal */}
-      {showForgotModal && (
-        <div className="vf-modal-overlay" onClick={() => setShowForgotModal(false)}>
-          <div className="vf-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="vf-modal-header">
-              <h3 className="vf-modal-title">Workspace Secret Recovery</h3>
-              <button
-                type="button"
-                className="vf-alert-close-btn"
-                onClick={() => setShowForgotModal(false)}
-              >
-                <CloseIcon className="vf-icon-close" />
-              </button>
-            </div>
-            <p className="vf-modal-body">
-              For security compliance with <strong>VisualForge Studio BaaS</strong>,
-              workspace secrets are hashed using bcrypt with salt rounds of 12 (SRS 3.6.3).
-            </p>
-            <p className="vf-modal-body">
-              To request a key rotation or reset link, contact your platform administrator
-              at <code>admin@vf.test</code> or request a reset token via the administration
-              dashboard.
-            </p>
-            <div className="vf-modal-footer">
-              <button
-                type="button"
-                className="vf-primary-btn"
-                style={{ padding: '7px 14px', fontSize: '12px' }}
-                onClick={() => setShowForgotModal(false)}
-              >
-                Understood
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

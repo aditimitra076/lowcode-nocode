@@ -7,6 +7,9 @@ import authRoutes from "./routes/authRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import marketplaceRoutes from "./routes/marketplaceRoutes.js";
+import tableRoutes from "./routes/tableRoutes.js";
+import publicFormRoutes from "./routes/publicFormRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
@@ -27,7 +30,10 @@ app.use(express.json({ limit: "2mb" }));
 // Mount API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/projects/:projectId/tables", tableRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/public", publicFormRoutes);
 app.use("/api", healthRoutes);
 
 // Global error handler

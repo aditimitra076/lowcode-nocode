@@ -22,7 +22,7 @@ export const COMPONENT_DEFS = {
     isContainer: false,
     defaults: {
       props: { text: 'Your heading goes here' },
-      style: { fontSize: '28px', color: '#f8fafc', textAlign: 'left', margin: '0 0 12px 0' },
+      style: { fontSize: '28px', color: '#0b0b0c', textAlign: 'left', margin: '0 0 12px 0' },
     },
     fields: [
       { key: 'text', label: 'Heading text', type: 'textarea', section: 'content' },
@@ -36,7 +36,7 @@ export const COMPONENT_DEFS = {
     isContainer: false,
     defaults: {
       props: { text: 'Write something about your project.' },
-      style: { fontSize: '15px', color: '#94a3b8', textAlign: 'left', margin: '0 0 12px 0' },
+      style: { fontSize: '15px', color: '#5f5f68', textAlign: 'left', margin: '0 0 12px 0' },
     },
     fields: [
       { key: 'text', label: 'Text', type: 'textarea', section: 'content' },
@@ -67,7 +67,7 @@ export const COMPONENT_DEFS = {
     defaults: {
       props: { text: 'Click me', href: '#' },
       style: {
-        background: '#6366f1',
+        background: '#0b0b0c',
         color: '#ffffff',
         fontSize: '14px',
         padding: '10px 18px',
@@ -90,7 +90,7 @@ export const COMPONENT_DEFS = {
     isContainer: true,
     defaults: {
       props: {},
-      style: { background: 'rgba(255, 255, 255, 0.03)', padding: '16px', borderRadius: '12px' },
+      style: { background: '#f6f6f2', padding: '16px', borderRadius: '12px' },
     },
     fields: [
       { key: 'background', label: 'Background', type: 'color', section: 'style' },
@@ -135,10 +135,10 @@ export const COMPONENT_DEFS = {
     defaults: {
       props: { title: 'Card title', text: 'A short supporting description.' },
       style: {
-        background: '#121824',
+        background: '#ffffff',
         padding: '18px',
         borderRadius: '12px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        border: '1px solid #e4e4df',
       },
     },
     fields: [
@@ -155,7 +155,7 @@ export const COMPONENT_DEFS = {
     isContainer: false,
     defaults: {
       props: { items: 'First list item\nSecond list item\nThird list item' },
-      style: { fontSize: '14px', color: '#cbd5e1', padding: '4px 0' },
+      style: { fontSize: '14px', color: '#0b0b0c', padding: '4px 0' },
     },
     fields: [
       { key: 'items', label: 'Items (one per line)', type: 'textarea', section: 'content' },
@@ -168,10 +168,11 @@ export const COMPONENT_DEFS = {
     icon: 'table',
     isContainer: false,
     defaults: {
-      props: { columns: 'Name, Email, Status', rows: '2' },
-      style: { fontSize: '13px', color: '#cbd5e1', padding: '4px 0' },
+      props: { columns: 'Name, Email, Status', rows: '2', tableId: '' },
+      style: { fontSize: '13px', color: '#0b0b0c', padding: '4px 0' },
     },
     fields: [
+      { key: 'tableId', label: 'Bound data table', type: 'table', section: 'content' },
       { key: 'columns', label: 'Column headers (comma separated)', type: 'text', section: 'content' },
       { key: 'rows', label: 'Placeholder rows', type: 'number', section: 'content' },
       { key: 'fontSize', label: 'Font size', type: 'text', section: 'style' },
@@ -184,15 +185,22 @@ export const COMPONENT_DEFS = {
     icon: 'form',
     isContainer: true,
     defaults: {
-      props: { submitText: 'Submit' },
+      props: { submitText: 'Submit', tableId: '', fieldKeys: 'name' },
       style: {
-        background: '#121824',
+        background: '#ffffff',
         padding: '16px',
         borderRadius: '12px',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        border: '1px solid #e4e4df',
       },
     },
     fields: [
+      { key: 'tableId', label: 'Bound data table', type: 'table', section: 'content' },
+      {
+        key: 'fieldKeys',
+        label: 'Form fields',
+        type: 'tableFields',
+        section: 'content',
+      },
       { key: 'submitText', label: 'Submit button text', type: 'text', section: 'content' },
       { key: 'background', label: 'Background', type: 'color', section: 'style' },
       { key: 'padding', label: 'Padding', type: 'text', section: 'style' },
