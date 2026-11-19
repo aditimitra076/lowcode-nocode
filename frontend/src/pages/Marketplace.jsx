@@ -15,7 +15,7 @@ import {
   AlertCircleIcon,
 } from '../components/ui/Icons';
 import { getStoredUser } from '../api/authApi';
-import { cloneListing, fetchListing, fetchListings } from '../api/marketplaceApi';
+import { fetchListing, fetchListings } from '../api/marketplaceApi';
 import './Marketplace.css';
 import { initials } from '../utils/text';
 import { countNodes } from '../builder/treeUtils';
@@ -85,8 +85,6 @@ export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
   const [selected, setSelected] = useState(null);
-  const [cloneId, setCloneId] = useState(null);
-  const [actionMessage, setActionMessage] = useState(null);
   const user = getStoredUser();
 
   const loadListings = useCallback(async () => {
@@ -169,32 +167,6 @@ export default function Marketplace() {
     );
   }, []);
 
-  const handleUseTemplate = useCallback(
-    async (project) => {
-      setActionMessage(null);
-
-      if (!user) {
-        navigate('/auth/login', { state: { from: '/marketplace' } });
-        return;
-      }
-
-      if (cloneId) return;
-      setCloneId(project.id);
-
-      try {
-        const result = await cloneListing(project.id);
-        if (!result.ok) {
-          setActionMessage({ type: 'error', text: result.message });
-          return;
-        }
-        navigate(`/builder/${result.data.project.id}`, { replace: true });
-      } finally {
-        setCloneId(null);
-      }
-    },
-    [cloneId, navigate, user],
-  );
-
   const selectedDeveloper = selected?.listing?.developer;
 
   return (
@@ -242,8 +214,7 @@ export default function Marketplace() {
           </div>
           <h1 className="vf-market-hero-title">Explore verified blueprints</h1>
           <p className="vf-market-hero-desc">
-            Browse approved projects, see the developer behind each listing, and use a blueprint as
-            the starting point of your own workspace.
+            Browse approved projects, visit live sites, and see the developer behind each listing.
           </p>
         </section>
 
@@ -305,7 +276,7 @@ export default function Marketplace() {
 
                   <p className="vf-market-description">
                     {proj.description?.trim() ||
-                      'Approved blueprint ready to clone into your workspace.'}
+                      'Approved blueprint from the VisualForge marketplace.'}
                   </p>
 
                   <div className="vf-market-contact-strip">
@@ -367,15 +338,6 @@ export default function Marketplace() {
                       onClick={() => openDetails(proj)}
                     >
                       Details
-                    </button>
-                    <button
-                      type="button"
-                      className="vf-market-clone-btn"
-                      disabled={cloneId === proj.id}
-                      onClick={() => handleUseTemplate(proj)}
-                    >
-                      <TemplateIcon className="vf-icon-contact" color="#ffffff" />
-                      <span>{cloneId === proj.id ? 'Adding…' : 'Use Template'}</span>
                     </button>
                   </div>
                 </div>
@@ -599,28 +561,7 @@ export default function Marketplace() {
                   >
                     Close
                   </button>
-                  <button
-                    type="button"
-                    className="vf-market-clone-btn vf-market-clone-btn-lg"
-                    disabled={cloneId === selected.listing.id}
-                    onClick={() => handleUseTemplate(selected.listing)}
-                  >
-                    <TemplateIcon className="vf-icon-contact" color="#ffffff" />
-                    <span>
-                      {cloneId === selected.listing.id
-                        ? 'Adding to workspace…'
-                        : user
-                          ? 'Use This Template'
-                          : 'Sign In & Use Template'}
-                    </span>
-                  </button>
                 </div>
-
-                {actionMessage ? (
-                  <p className={`vf-market-action-message vf-market-action-${actionMessage.type}`}>
-                    {actionMessage.text}
-                  </p>
-                ) : null}
               </>
             )}
           </div>

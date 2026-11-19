@@ -1113,16 +1113,22 @@
   }
 }
 
+.vf-el-card {
+  color: var(--vf-text);
+}
+
 .vf-el-card-title {
   margin: 0 0 6px;
   font-size: 1.05rem;
-  color: var(--vf-text);
+  color: inherit;
+  opacity: 0.95;
 }
 
 .vf-el-card-text {
   margin: 0 0 10px;
   font-size: 0.95rem;
-  color: var(--vf-text-muted);
+  color: inherit;
+  opacity: 0.72;
 }
 
 .vf-el-list {

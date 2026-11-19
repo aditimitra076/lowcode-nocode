@@ -13,7 +13,45 @@ import adminRoutes from "./routes/adminRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { UPLOADS_DIR } from "./controllers/uploadController.js";
 
-dns.setServers(["1.1.1.1", "8.8.8.8"]);
+// Windows/ISP DNS often fails Atlas SRV hostnames (ENOTFOUND).
+// Prefer public resolvers for both resolve* and a custom Mongo lookup.
+const PUBLIC_DNS = ["1.1.1.1", "8.8.8.8", "1.0.0.1"];
+try {
+  dns.setServers(PUBLIC_DNS);
+  if (typeof dns.setDefaultResultOrder === "function") {
+    dns.setDefaultResultOrder("ipv4first");
+  }
+} catch {
+  /* ignore */
+}
+
+const atlasResolver = new dns.Resolver();
+atlasResolver.setServers(PUBLIC_DNS);
+
+/** MongoDB driver lookup that bypasses broken OS getaddrinfo for Atlas hosts. */
+function atlasDnsLookup(hostname, options, callback) {
+  if (typeof options === "function") {
+    callback = options;
+    options = {};
+  }
+
+  atlasResolver.resolve4(hostname, (err, addresses) => {
+    if (err || !addresses?.length) {
+      // Fall back to OS resolver if public DNS fails.
+      return dns.lookup(hostname, options || {}, callback);
+    }
+
+    if (options?.all) {
+      callback(
+        null,
+        addresses.map((address) => ({ address, family: 4 })),
+      );
+      return;
+    }
+
+    callback(null, addresses[0], 4);
+  });
+}
 
 dotenv.config();
 
@@ -54,7 +92,11 @@ const connectDB = async () => {
     return;
   }
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI, {
+      family: 4,
+      serverSelectionTimeoutMS: 20000,
+      lookup: atlasDnsLookup,
+    });
     console.log("Database connected!");
   } catch (error) {
     console.log("Connection failed!", error.message);
