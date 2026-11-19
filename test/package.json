@@ -1,0 +1,14 @@
+{
+  "name": "visualforge-tests",
+  "private": true,
+  "type": "module",
+  "description": "Black box (Member 1) and white box (Member 2) tests for VisualForge Studio. No dependencies of its own: it uses Node's built-in test runner and the backend's node_modules.",
+  "scripts": {
+    "test": "npm run test:white",
+    "test:white": "node --test --experimental-test-coverage --test-coverage-include=**/backend/utils/*.js --test-coverage-include=**/backend/middleware/*.js --test-coverage-include=**/backend/controllers/projectController.js --test-coverage-include=**/backend/controllers/adminController.js whitebox.test.mjs",
+    "test:black": "node blackbox.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

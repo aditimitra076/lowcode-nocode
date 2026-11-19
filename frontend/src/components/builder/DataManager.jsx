@@ -7,8 +7,10 @@ import {
   fetchRecords,
   fetchTableDocs,
   fetchTables,
+  updateRecord,
   updateTable,
 } from '../../api/tableApi';
+import { inputTypeForField } from '../../builder/fieldTypes';
 
 const FIELD_TYPES = ['text', 'number', 'email', 'boolean', 'date'];
 
@@ -20,13 +22,6 @@ function toKey(label) {
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_|_$/g, '') || 'field'
   );
-}
-
-function inputTypeForField(type) {
-  if (type === 'email') return 'email';
-  if (type === 'number') return 'number';
-  if (type === 'date') return 'date';
-  return 'text';
 }
 
 function newRowId() {
@@ -47,6 +42,7 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
   const [draftFields, setDraftFields] = useState([]);
   const [draftName, setDraftName] = useState('');
   const [recordDraft, setRecordDraft] = useState({});
+  const [editingRecordId, setEditingRecordId] = useState(null);
   const [apiDocs, setApiDocs] = useState(null);
 
   const selected = useMemo(
@@ -107,9 +103,12 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
         key: field.key,
         label: field.label,
         type: field.type || 'text',
+        required: Boolean(field.required),
+        minLength: Number(field.minLength) || 0,
       })),
     );
     setRecordDraft({});
+    setEditingRecordId(null);
     loadRecords(selected.id);
   }, [selected?.id, projectId]);
 
@@ -173,6 +172,8 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
           key: toKey(label) || field.key || 'field',
           label,
           type: FIELD_TYPES.includes(field.type) ? field.type : 'text',
+          required: Boolean(field.required),
+          minLength: Math.max(0, Number(field.minLength) || 0),
         };
       })
       .filter((field) => field.key && field.label);
@@ -215,6 +216,8 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
         key: `field_${current.length + 1}`,
         label: `Field ${current.length + 1}`,
         type: 'text',
+        required: false,
+        minLength: 0,
       },
     ]);
   };
@@ -224,12 +227,33 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
     if (!canEdit || !selected) return;
 
     for (const field of selected.fields || []) {
-      if (field.type !== 'email') continue;
-      const value = String(recordDraft[field.key] ?? '').trim();
-      if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      const value = recordDraft[field.key];
+      const text = value == null ? '' : String(value).trim();
+      if (field.required && text === '' && field.type !== 'boolean') {
+        setMessage(`“${field.label}” is required.`);
+        return;
+      }
+      if (field.type === 'email' && text && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
         setMessage(`“${field.label}” must be a valid email.`);
         return;
       }
+      if (Number(field.minLength) > 0 && text.length < Number(field.minLength)) {
+        setMessage(`“${field.label}” must be at least ${field.minLength} characters.`);
+        return;
+      }
+    }
+
+    if (editingRecordId) {
+      const result = await updateRecord(projectId, selected.id, editingRecordId, recordDraft);
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
+      setRecordDraft({});
+      setEditingRecordId(null);
+      await loadRecords(selected.id);
+      setMessage('Record updated.');
+      return;
     }
 
     const result = await createRecord(projectId, selected.id, recordDraft);
@@ -242,6 +266,12 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
     setMessage('Record added.');
   };
 
+  const handleEditRecord = (record) => {
+    setEditingRecordId(record.id);
+    setRecordDraft({ ...(record.data || {}) });
+    setTab('records');
+  };
+
   const handleDeleteRecord = async (recordId) => {
     if (!canEdit || !selected) return;
     if (!window.confirm('Delete this record?')) return;
@@ -249,6 +279,10 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
     if (!result.ok) {
       setMessage(result.message);
       return;
+    }
+    if (editingRecordId === recordId) {
+      setEditingRecordId(null);
+      setRecordDraft({});
     }
     setRecords((current) => current.filter((item) => item.id !== recordId));
   };
@@ -433,6 +467,38 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                               </option>
                             ))}
                           </select>
+                          <label className="vf-field-inline">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(field.required)}
+                              disabled={!canEdit}
+                              onChange={(event) => {
+                                const required = event.target.checked;
+                                setDraftFields((current) =>
+                                  current.map((item) =>
+                                    item.id === field.id ? { ...item, required } : item,
+                                  ),
+                                );
+                              }}
+                            />
+                            Required
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            title="Min length"
+                            placeholder="Min len"
+                            value={field.minLength || 0}
+                            disabled={!canEdit}
+                            onChange={(event) => {
+                              const minLength = Math.max(0, Number(event.target.value) || 0);
+                              setDraftFields((current) =>
+                                current.map((item) =>
+                                  item.id === field.id ? { ...item, minLength } : item,
+                                ),
+                              );
+                            }}
+                          />
                           <code>{field.key}</code>
                           {canEdit ? (
                             <button
@@ -529,9 +595,23 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                             )}
                           </label>
                         ))}
-                        <button type="submit" className="vf-btn vf-btn-primary">
-                          Add record
-                        </button>
+                        <div className="vf-data-actions">
+                          <button type="submit" className="vf-btn vf-btn-primary">
+                            {editingRecordId ? 'Save record' : 'Add record'}
+                          </button>
+                          {editingRecordId ? (
+                            <button
+                              type="button"
+                              className="vf-btn"
+                              onClick={() => {
+                                setEditingRecordId(null);
+                                setRecordDraft({});
+                              }}
+                            >
+                              Cancel edit
+                            </button>
+                          ) : null}
+                        </div>
                       </form>
                     ) : null}
 
@@ -556,6 +636,13 @@ export default function DataManager({ projectId, canEdit, open, onClose }) {
                                 ))}
                                 {canEdit ? (
                                   <td>
+                                    <button
+                                      type="button"
+                                      className="vf-mini-btn"
+                                      onClick={() => handleEditRecord(record)}
+                                    >
+                                      Edit
+                                    </button>
                                     <button
                                       type="button"
                                       className="vf-mini-btn"

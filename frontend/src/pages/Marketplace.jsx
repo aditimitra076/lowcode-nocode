@@ -17,6 +17,8 @@ import {
 import { getStoredUser } from '../api/authApi';
 import { cloneListing, fetchListing, fetchListings } from '../api/marketplaceApi';
 import './Marketplace.css';
+import { initials } from '../utils/text';
+import { countNodes } from '../builder/treeUtils';
 
 function normalizeDeveloper(developer = {}) {
   const contact = developer.contact || {};
@@ -57,15 +59,7 @@ function normalizeListing(listing = {}) {
     pagesCount: listing.pagesCount ?? pages.length ?? 0,
     componentCount:
       listing.componentCount ??
-      pages.reduce(
-        (total, page) =>
-          total +
-          (page.components || []).reduce(
-            (sum, component) => sum + 1 + countChildren(component),
-            0,
-          ),
-        0,
-      ),
+      pages.reduce((total, page) => total + countNodes(page.components), 0),
     tablesCount:
       listing.tablesCount ??
       pages.reduce(
@@ -76,27 +70,11 @@ function normalizeListing(listing = {}) {
   };
 }
 
-function countChildren(component) {
-  return (component.children || []).reduce(
-    (total, child) => total + 1 + countChildren(child),
-    0,
-  );
-}
-
 function countType(node, type) {
   return (node.children || []).reduce(
     (total, child) => total + (child.type === type ? 1 : 0) + countType(child, type),
     node.type === type ? 1 : 0,
   );
-}
-
-function initials(name) {
-  return (name || '')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('');
 }
 
 export default function Marketplace() {
@@ -463,6 +441,25 @@ export default function Marketplace() {
                     <span>Screenshots</span>
                   </div>
                 </div>
+
+                {selected.listing.screenshots.length ? (
+                  <section className="vf-market-modal-section">
+                    <h3>Screenshots</h3>
+                    <div className="vf-market-shot-grid">
+                      {selected.listing.screenshots.map((url) => (
+                        <a
+                          key={url}
+                          className="vf-market-shot"
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <img src={url} alt="" />
+                        </a>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
                 <section className="vf-market-modal-section">
                   <h3>Blueprint pages</h3>

@@ -18,6 +18,13 @@ import {
 import { loginUser, registerUser, getStoredUser, clearSession } from '../api/authApi';
 import './AuthPage.css';
 
+// The password rules of the sign-up form (the same rules the server applies).
+const PASSWORD_RULES = [
+  { label: 'At least 8 characters', test: (value) => value.length >= 8 },
+  { label: 'A letter', test: (value) => /[A-Za-z]/.test(value) },
+  { label: 'A number', test: (value) => /\d/.test(value) },
+];
+
 export default function AuthPage({ initialTab }) {
   const { type } = useParams();
   const navigate = useNavigate();
@@ -72,7 +79,7 @@ export default function AuthPage({ initialTab }) {
         setAlert({ type: 'error', message: 'Enter your name.' });
         return;
       }
-      if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      if (!PASSWORD_RULES.every((rule) => rule.test(password))) {
         setAlert({
           type: 'error',
           message: 'Password must be at least 8 characters and include a letter and a number.',
@@ -258,6 +265,16 @@ export default function AuthPage({ initialTab }) {
                   )}
                 </button>
               </div>
+              {activeTab === 'register' ? (
+                <ul className="vf-pw-rules" aria-label="Password rules">
+                  {PASSWORD_RULES.map((rule) => (
+                    <li key={rule.label} className={rule.test(password) ? 'is-met' : ''}>
+                      <CheckIcon className="vf-icon-check" />
+                      {rule.label}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
 
             <button type="submit" className="vf-primary-btn" disabled={loading}>

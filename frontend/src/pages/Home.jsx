@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   CubeIcon,
   SignInIcon,
-  UserPlusIcon,
   StoreIcon,
   ArrowRightIcon,
   ArrowUpRightIcon,
@@ -22,7 +21,10 @@ import {
 import { getStoredUser, clearSession } from '../api/authApi';
 import { fetchProjects, deleteProject } from '../api/projectApi';
 import { fetchListings } from '../api/marketplaceApi';
+import { getSampleListings } from '../data/marketplaceTemplates';
+import { initials } from '../utils/text';
 import './Home.css';
+import './HomeLanding.css';
 
 function formatUpdatedAt(value) {
   if (!value) return '—';
@@ -40,15 +42,6 @@ function formatUpdatedAt(value) {
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
-
-function initials(name) {
-  return (name || '')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('');
-}
 
 const FEATURES = [
   {
@@ -114,6 +107,48 @@ const STEPS = [
 
 const STACK = ['React', 'Node.js', 'Express', 'MongoDB', 'JWT auth', 'REST APIs'];
 
+// Facts about the product that are true in the current version.
+const HIGHLIGHTS = [
+  { value: '14', label: 'drag-and-drop component types' },
+  { value: '5', label: 'field types with validation' },
+  { value: 'CRUD', label: 'API generated for every table' },
+  { value: '2', label: 'team roles: Editor and Viewer' },
+];
+
+const ROLES = [
+  { name: 'Developer', text: 'Builds projects, defines tables and publishes finished work to the marketplace.' },
+  { name: 'Team member', text: 'Works on a shared project as an Editor, or looks at it as a Viewer.' },
+  { name: 'Administrator', text: 'Reviews marketplace listings, manages accounts and reads the activity log.' },
+  { name: 'Visitor', text: 'Browses and searches approved blueprints without needing an account.' },
+];
+
+const FAQ = [
+  {
+    q: 'Do I need to write code?',
+    a: 'No. You build pages by drag and drop, and the create, read, update and delete APIs for your tables are generated for you.',
+  },
+  {
+    q: 'Which database does it use?',
+    a: 'MongoDB, through Mongoose. The tables you define are stored as documents and every value is checked against its field type.',
+  },
+  {
+    q: 'Who can see my projects?',
+    a: 'Only you and the people you add as collaborators. A project appears in the marketplace only after an administrator approves it.',
+  },
+  {
+    q: 'How does the marketplace review work?',
+    a: 'You submit a project with a description and tags. An administrator approves it, or rejects it with a reason so you can improve it and submit it again.',
+  },
+  {
+    q: 'Can I work with a team?',
+    a: 'Yes. Add registered users by email as Editors, who can change pages and tables, or as Viewers, who can open and preview the project.',
+  },
+  {
+    q: 'Is it free?',
+    a: 'VisualForge Studio is a course project built with open-source tools, and it is free to use.',
+  },
+];
+
 function BuilderMock() {
   return (
     <div className="vf-hero-visual" aria-hidden="true">
@@ -140,27 +175,43 @@ function BuilderMock() {
           <main className="vf-mock-canvas">
             <div className="vf-mock-nav">
               <span className="vf-mock-logo" />
-              <span className="vf-mock-line vf-mock-line-sm" />
-              <span className="vf-mock-line vf-mock-line-xs" />
+              <strong className="vf-mock-brand">Northwind Store</strong>
+              <span className="vf-mock-navlinks">
+                <i>Shop</i>
+                <i>About</i>
+                <i>Contact</i>
+              </span>
             </div>
-            <div className="vf-mock-hero">
-              <div className="vf-mock-block vf-mock-block-title" />
-              <div className="vf-mock-block vf-mock-block-text" />
-              <div className="vf-mock-block vf-mock-block-text vf-mock-block-short" />
-              <div className="vf-mock-button">Get started</div>
+            <div className="vf-mock-hero vf-mock-selected">
+              <h4 className="vf-mock-heading">Handmade goods, delivered.</h4>
+              <p className="vf-mock-copy">Browse the catalogue and order in two clicks.</p>
+              <div className="vf-mock-button">Shop now</div>
             </div>
-            <div className="vf-mock-columns">
-              <div className="vf-mock-card" />
-              <div className="vf-mock-card" />
-              <div className="vf-mock-card" />
+            <div className="vf-mock-table">
+              <div className="vf-mock-row vf-mock-row-head">
+                <span>Product</span>
+                <span>Price</span>
+                <span>Stock</span>
+              </div>
+              {[
+                ['Ceramic mug', '$14', '38'],
+                ['Linen apron', '$29', '12'],
+                ['Oak board', '$45', '7'],
+              ].map(([name, price, stock]) => (
+                <div key={name} className="vf-mock-row">
+                  <span>{name}</span>
+                  <span>{price}</span>
+                  <span>{stock}</span>
+                </div>
+              ))}
             </div>
           </main>
           <aside className="vf-mock-props">
             <div className="vf-mock-panel-head">Properties</div>
             <div className="vf-mock-prop-label">Text</div>
-            <div className="vf-mock-input" />
+            <div className="vf-mock-input">Handmade goods…</div>
             <div className="vf-mock-prop-label">Font size</div>
-            <div className="vf-mock-input vf-mock-input-short" />
+            <div className="vf-mock-input vf-mock-input-short">32 px</div>
             <div className="vf-mock-prop-label">Colour</div>
             <div className="vf-mock-swatches">
               <span />
@@ -202,6 +253,7 @@ export default function Home() {
   const [projects, setProjects] = useState(null);
   const [projectsError, setProjectsError] = useState(null);
   const [featuredBlueprints, setFeaturedBlueprints] = useState([]);
+  const sampleBlueprints = useMemo(() => getSampleListings().slice(0, 3), []);
   const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
@@ -280,6 +332,7 @@ export default function Home() {
               <a href="#product">Product</a>
               <a href="#how">How it works</a>
               <a href="#marketplace">Marketplace</a>
+              <a href="#faq">FAQ</a>
             </nav>
           ) : null}
 
@@ -293,6 +346,9 @@ export default function Home() {
                     <span>{user.role}</span>
                   </span>
                 </span>
+                <button type="button" className="vf-ghost-btn" onClick={() => navigate('/profile')}>
+                  Profile
+                </button>
                 {user.role === 'Admin' ? (
                   <button type="button" className="vf-ghost-btn" onClick={() => navigate('/admin')}>
                     Admin
@@ -523,6 +579,16 @@ export default function Home() {
               </div>
             </section>
 
+            {/* Facts */}
+            <section className="vf-facts" aria-label="Product facts">
+              {HIGHLIGHTS.map((item) => (
+                <div key={item.label} className="vf-fact">
+                  <strong>{item.value}</strong>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </section>
+
             {/* Feature bento */}
             <section id="product" className="vf-section">
               <div className="vf-section-intro vf-section-intro-center">
@@ -607,7 +673,27 @@ export default function Home() {
                 </div>
                 <div className="vf-split-cards">
                   {featuredBlueprints.length === 0 ? (
-                    <p className="vf-muted">No approved blueprints yet. Publish a project to appear here.</p>
+                    <>
+                      {sampleBlueprints.map((sample) => (
+                        <article key={sample.id} className="vf-sample-card">
+                          <div className="vf-sample-top">
+                            <h3>{sample.name}</h3>
+                            <span className="vf-sample-badge">Sample</span>
+                          </div>
+                          <p>{sample.description}</p>
+                          <div className="vf-sample-meta">
+                            <span>{sample.pagesCount} pages</span>
+                            <span>{sample.componentCount} components</span>
+                            {(sample.tags || []).slice(0, 2).map((tag) => (
+                              <span key={tag}>#{tag}</span>
+                            ))}
+                          </div>
+                        </article>
+                      ))}
+                      <p className="vf-muted vf-sample-note">
+                        These are examples. Approved projects of real developers appear here.
+                      </p>
+                    </>
                   ) : (
                     featuredBlueprints.map((blueprint) => (
                       <article key={blueprint.id} className="vf-blueprint-row">
@@ -652,6 +738,41 @@ export default function Home() {
                     ))
                   )}
                 </div>
+              </div>
+            </section>
+
+            {/* Roles */}
+            <section id="roles" className="vf-section">
+              <div className="vf-section-intro vf-section-intro-center">
+                <p className="vf-eyebrow">Who it is for</p>
+                <h2>One platform, four kinds of people.</h2>
+                <p className="vf-muted">
+                  Each role sees only what it needs, and every permission is checked on the server.
+                </p>
+              </div>
+              <div className="vf-role-grid">
+                {ROLES.map((role) => (
+                  <article key={role.name} className="vf-role-card">
+                    <h3>{role.name}</h3>
+                    <p>{role.text}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            {/* FAQ */}
+            <section id="faq" className="vf-section">
+              <div className="vf-section-intro vf-section-intro-center">
+                <p className="vf-eyebrow">Questions</p>
+                <h2>Good to know before you start.</h2>
+              </div>
+              <div className="vf-faq">
+                {FAQ.map((item) => (
+                  <details key={item.q} className="vf-faq-item">
+                    <summary>{item.q}</summary>
+                    <p>{item.a}</p>
+                  </details>
+                ))}
               </div>
             </section>
 
@@ -719,6 +840,7 @@ export default function Home() {
                 {user ? (
                   <>
                     <button type="button" onClick={() => navigate('/')}>Workspace</button>
+                    <button type="button" onClick={() => navigate('/profile')}>Profile</button>
                     <button type="button" onClick={handleLogout}>Sign out</button>
                   </>
                 ) : (

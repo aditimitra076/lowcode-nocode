@@ -2,32 +2,8 @@ import mongoose from 'mongoose'
 import DataTable, { FIELD_TYPES } from '../modules/DataTable.js'
 import TableRecord from '../modules/TableRecord.js'
 import { coerceRecordData } from '../utils/fieldData.js'
+import { serializeRecord, serializeTable } from '../utils/serializers.js'
 import { canEdit, findAccessibleProject } from '../utils/projectAccess.js'
-
-function serializeTable(table) {
-  return {
-    id: table.id,
-    projectId: String(table.project),
-    name: table.name,
-    fields: (table.fields || []).map((field) => ({
-      key: field.key,
-      label: field.label,
-      type: field.type || 'text',
-    })),
-    createdAt: table.createdAt,
-    updatedAt: table.updatedAt,
-  }
-}
-
-function serializeRecord(record) {
-  return {
-    id: record.id,
-    tableId: String(record.table),
-    data: record.data || {},
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-  }
-}
 
 function normalizeFields(fields) {
   if (!Array.isArray(fields)) return []
@@ -42,9 +18,13 @@ function normalizeFields(fields) {
         : ''
     const label = typeof field.label === 'string' ? field.label.trim() : key
     const type = FIELD_TYPES.includes(field.type) ? field.type : 'text'
+    const required = Boolean(field.required)
+    const minLength = Number.isFinite(Number(field.minLength))
+      ? Math.max(0, Math.min(5000, Number(field.minLength)))
+      : 0
     if (!key || seen.has(key)) continue
     seen.add(key)
-    result.push({ key, label: label || key, type })
+    result.push({ key, label: label || key, type, required, minLength })
   }
 
   return result.slice(0, 40)

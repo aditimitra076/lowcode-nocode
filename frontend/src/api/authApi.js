@@ -1,32 +1,7 @@
-const TOKEN_KEY = 'vf_auth_token';
-const USER_KEY = 'vf_auth_user';
+import { NETWORK_ERROR } from './client';
+import { clearSession, getAuthToken, setSession } from './session';
 
-export function getAuthToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function getStoredUser() {
-  try {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-export function setSession(token, user) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
-export function clearSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
-}
-
-export function isAuthenticated() {
-  return Boolean(getAuthToken());
-}
+export { clearSession, getAuthToken, getStoredUser, isAuthenticated, setSession } from './session';
 
 async function authRequest(path, body) {
   let response;
@@ -39,7 +14,7 @@ async function authRequest(path, body) {
   } catch {
     return {
       success: false,
-      message: 'Could not reach the API server. Is the backend running?',
+      message: NETWORK_ERROR,
       status: 0,
     };
   }
@@ -101,4 +76,43 @@ export async function fetchCurrentUser() {
   }
 
   return getStoredUser();
+}
+
+async function profileRequest(method, body) {
+  const token = getAuthToken();
+  if (!token) {
+    return { ok: false, status: 401, message: 'Sign in to edit your profile.' };
+  }
+
+  let response;
+  try {
+    response = await fetch('/api/auth/profile', {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    return {
+      ok: false,
+      status: 0,
+      message: NETWORK_ERROR,
+    };
+  }
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return { ok: false, status: response.status, message: data.message || 'Request failed.' };
+  }
+  return { ok: true, status: response.status, data };
+}
+
+export function fetchProfile() {
+  return profileRequest('GET');
+}
+
+export function saveProfile(payload) {
+  return profileRequest('PUT', payload);
 }

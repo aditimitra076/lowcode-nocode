@@ -136,6 +136,35 @@ export const COMPONENT_DEFS = {
       { key: 'padding', label: 'Padding', type: 'text', section: 'style' },
     ],
   },
+  file: {
+    label: 'File',
+    icon: 'file',
+    isContainer: false,
+    defaults: {
+      props: { src: '', label: 'Download file', openInNewTab: 'yes' },
+      style: {
+        color: '#0b57d0',
+        fontSize: '15px',
+        horizontalAlign: 'left',
+      },
+    },
+    fields: [
+      { key: 'src', label: 'File URL or upload', type: 'fileSrc', section: 'content' },
+      { key: 'label', label: 'Link text', type: 'text', section: 'content' },
+      {
+        key: 'openInNewTab',
+        label: 'Open in new tab',
+        type: 'select',
+        options: [
+          { value: 'yes', label: 'Yes' },
+          { value: 'no', label: 'No' },
+        ],
+        section: 'content',
+      },
+      ...TEXT_STYLE_FIELDS,
+      ...LAYOUT_STYLE_FIELDS,
+    ],
+  },
   button: {
     label: 'Button',
     icon: 'button',
@@ -279,7 +308,14 @@ export const COMPONENT_DEFS = {
     icon: 'card',
     isContainer: true,
     defaults: {
-      props: { title: 'Card title', text: 'A short supporting description.' },
+      props: {
+        dataSource: 'static',
+        title: 'Card title',
+        text: 'A short supporting description.',
+        tableId: '',
+        titleField: 'name',
+        textField: 'email',
+      },
       style: {
         background: '#ffffff',
         padding: '18px',
@@ -291,8 +327,21 @@ export const COMPONENT_DEFS = {
       },
     },
     fields: [
-      { key: 'title', label: 'Title', type: 'text', section: 'content' },
-      { key: 'text', label: 'Description', type: 'textarea', section: 'content' },
+      {
+        key: 'dataSource',
+        label: 'Data source',
+        type: 'select',
+        options: [
+          { value: 'static', label: 'Static' },
+          { value: 'api', label: 'API table' },
+        ],
+        section: 'content',
+      },
+      { key: 'title', label: 'Title', type: 'text', section: 'content', showWhen: 'static' },
+      { key: 'text', label: 'Description', type: 'textarea', section: 'content', showWhen: 'static' },
+      { key: 'tableId', label: 'Bound data table', type: 'table', section: 'content', showWhen: 'api' },
+      { key: 'titleField', label: 'Title field key', type: 'text', section: 'content', showWhen: 'api' },
+      { key: 'textField', label: 'Text field key', type: 'text', section: 'content', showWhen: 'api' },
       { key: 'background', label: 'Background', type: 'color', section: 'style' },
       { key: 'padding', label: 'Padding', type: 'text', section: 'style' },
       { key: 'borderRadius', label: 'Corner radius', type: 'text', section: 'style' },
@@ -304,7 +353,12 @@ export const COMPONENT_DEFS = {
     icon: 'list',
     isContainer: false,
     defaults: {
-      props: { items: 'First list item\nSecond list item\nThird list item' },
+      props: {
+        dataSource: 'static',
+        items: 'First list item\nSecond list item\nThird list item',
+        tableId: '',
+        itemField: 'name',
+      },
       style: {
         fontSize: '14px',
         color: '#0b0b0c',
@@ -314,7 +368,25 @@ export const COMPONENT_DEFS = {
       },
     },
     fields: [
-      { key: 'items', label: 'Items (one per line)', type: 'textarea', section: 'content' },
+      {
+        key: 'dataSource',
+        label: 'Data source',
+        type: 'select',
+        options: [
+          { value: 'static', label: 'Static' },
+          { value: 'api', label: 'API table' },
+        ],
+        section: 'content',
+      },
+      {
+        key: 'items',
+        label: 'Items (one per line)',
+        type: 'textarea',
+        section: 'content',
+        showWhen: 'static',
+      },
+      { key: 'tableId', label: 'Bound data table', type: 'table', section: 'content', showWhen: 'api' },
+      { key: 'itemField', label: 'Item field key', type: 'text', section: 'content', showWhen: 'api' },
       ...TEXT_STYLE_FIELDS,
       ...LAYOUT_STYLE_FIELDS,
       { key: 'padding', label: 'Padding', type: 'text', section: 'style' },
@@ -450,7 +522,7 @@ export const COMPONENT_DEFS = {
 };
 
 export const COMPONENT_GROUPS = [
-  { label: 'Basic', types: ['heading', 'text', 'image', 'button'] },
+  { label: 'Basic', types: ['heading', 'text', 'image', 'file', 'button'] },
   { label: 'Layout', types: ['container', 'row', 'column', 'spacer', 'divider'] },
   { label: 'Data', types: ['form', 'list', 'table', 'card'] },
 ];

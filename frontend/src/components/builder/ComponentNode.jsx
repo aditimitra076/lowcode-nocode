@@ -4,13 +4,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { COMPONENT_DEFS } from '../../builder/componentRegistry';
 import ComponentBody from '../../builder/ComponentBody';
 import { useBuilderStore } from '../../store/builderStore';
+import DropLine from './DropLine';
 
 const MIN_WIDTH = 120;
 const MIN_COL_PCT = 12;
-
-function DropLine({ show }) {
-  return show ? <div className="vf-drop-line" aria-hidden="true" /> : null;
-}
 
 function parseWidthPx(value, fallback) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;

@@ -7,6 +7,8 @@ const fieldSchema = new mongoose.Schema(
     key: { type: String, required: true, trim: true, maxlength: 60 },
     label: { type: String, required: true, trim: true, maxlength: 80 },
     type: { type: String, enum: FIELD_TYPES, default: 'text' },
+    required: { type: Boolean, default: false },
+    minLength: { type: Number, default: 0, min: 0, max: 5000 },
   },
   { _id: false },
 )

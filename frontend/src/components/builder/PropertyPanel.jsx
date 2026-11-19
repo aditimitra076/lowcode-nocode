@@ -3,12 +3,19 @@ import { COMPONENT_DEFS } from '../../builder/componentRegistry';
 import { countNodes, findNode } from '../../builder/treeUtils';
 import { useActivePage, useBuilderStore } from '../../store/builderStore';
 import { fetchTables } from '../../api/tableApi';
-import { uploadImage } from '../../api/uploadApi';
+import { uploadFile } from '../../api/uploadApi';
 
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
 const OBJECT_ID = /^[a-f0-9]{24}$/i;
+const IMAGE_ACCEPT = 'image/jpeg,image/png,image/gif,image/webp';
+const FILE_ACCEPT =
+  'image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/csv,application/csv,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip,application/x-zip-compressed,.pdf,.txt,.csv,.doc,.docx,.zip';
 
-function ImageSrcField({ field, nodeId, value, onChange }) {
+function isImageUrl(url) {
+  return /\.(jpe?g|png|gif|webp)(\?|$)/i.test(String(url || ''));
+}
+
+function UploadSrcField({ field, nodeId, value, onChange, accept, buttonLabel, successLabel }) {
   const inputId = `field-${nodeId}-${field.key}`;
   const fileId = `${inputId}-file`;
   const stringValue = value == null ? '' : String(value);
@@ -22,14 +29,14 @@ function ImageSrcField({ field, nodeId, value, onChange }) {
 
     setUploading(true);
     setMessage('');
-    const result = await uploadImage(file);
+    const result = await uploadFile(file);
     setUploading(false);
     if (!result.ok) {
       setMessage(result.message);
       return;
     }
     onChange(result.data.url);
-    setMessage('Image uploaded.');
+    setMessage(successLabel || 'Uploaded.');
   };
 
   return (
@@ -46,19 +53,46 @@ function ImageSrcField({ field, nodeId, value, onChange }) {
         <input
           id={fileId}
           type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
+          accept={accept}
           disabled={uploading}
           onChange={handleUpload}
         />
         <label htmlFor={fileId} className="vf-mini-btn">
-          {uploading ? 'Uploading…' : 'Upload image'}
+          {uploading ? 'Uploading…' : buttonLabel}
         </label>
       </div>
-      {stringValue ? (
+      {stringValue && isImageUrl(stringValue) ? (
         <img className="vf-upload-preview" src={stringValue} alt="" />
+      ) : null}
+      {stringValue && !isImageUrl(stringValue) ? (
+        <a className="vf-field-help" href={stringValue} target="_blank" rel="noreferrer">
+          Open uploaded file
+        </a>
       ) : null}
       {message ? <span className="vf-field-help">{message}</span> : null}
     </div>
+  );
+}
+
+function ImageSrcField(props) {
+  return (
+    <UploadSrcField
+      {...props}
+      accept={IMAGE_ACCEPT}
+      buttonLabel="Upload image"
+      successLabel="Image uploaded."
+    />
+  );
+}
+
+function FileSrcField(props) {
+  return (
+    <UploadSrcField
+      {...props}
+      accept={FILE_ACCEPT}
+      buttonLabel="Upload file"
+      successLabel="File uploaded."
+    />
   );
 }
 
@@ -70,6 +104,17 @@ function Field({ field, nodeId, value, onChange, tables, pages }) {
   if (field.type === 'imageSrc') {
     return (
       <ImageSrcField
+        field={field}
+        nodeId={nodeId}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+
+  if (field.type === 'fileSrc') {
+    return (
+      <FileSrcField
         field={field}
         nodeId={nodeId}
         value={value}
@@ -413,12 +458,19 @@ export default function PropertyPanel() {
           }
 
           if (field.key === 'dataSource') {
-            updateProps(node.id, {
-              dataSource: value,
-              ...(value === 'static'
-                ? { tableId: '', columns: 'Name, Email, Status', rows: node.props?.rows || '2' }
-                : { columns: '', rows: '0' }),
-            });
+            if (node.type === 'table') {
+              updateProps(node.id, {
+                dataSource: value,
+                ...(value === 'static'
+                  ? { tableId: '', columns: 'Name, Email, Status', rows: node.props?.rows || '2' }
+                  : { columns: '', rows: '0' }),
+              });
+            } else {
+              updateProps(node.id, {
+                dataSource: value,
+                ...(value === 'static' ? { tableId: '' } : {}),
+              });
+            }
             return;
           }
 

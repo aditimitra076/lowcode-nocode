@@ -221,6 +221,39 @@
   color: var(--vf-faint);
 }
 
+.vf-pw-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--vf-text-xs);
+  color: var(--vf-faint);
+}
+
+.vf-pw-rules li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: color 0.15s ease;
+}
+
+.vf-pw-rules .vf-icon-check {
+  width: 0.85rem;
+  height: 0.85rem;
+  opacity: 0.35;
+  transition: opacity 0.15s ease;
+}
+
+.vf-pw-rules li.is-met {
+  color: var(--vf-green, #0f8a5f);
+}
+
+.vf-pw-rules li.is-met .vf-icon-check {
+  opacity: 1;
+}
+
 .vf-input-wrapper {
   min-height: var(--vf-touch);
   display: flex;

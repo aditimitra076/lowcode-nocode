@@ -10,6 +10,7 @@ import Marketplace from './pages/Marketplace.jsx';
 import Builder from './pages/Builder.jsx';
 import Admin from './pages/Admin.jsx';
 import SitePreview from './pages/SitePreview.jsx';
+import Profile from './pages/Profile.jsx';
 
 // Browser Router
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
@@ -67,6 +68,10 @@ const router = createBrowserRouter([
   {
     path: '/admin',
     element: <Admin />,
+  },
+  {
+    path: '/profile',
+    element: <Profile />,
   },
   {
     path: '*',

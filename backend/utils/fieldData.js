@@ -1,8 +1,8 @@
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { EMAIL_PATTERN } from './validation.js'
 
 /**
- * Coerce + validate record payload against table field types.
- * Email fields must look like emails; numbers/dates/booleans are checked too.
+ * Coerce + validate record payload against table field types,
+ * required flags, and minLength (FR-20 / FR-30).
  */
 export function coerceRecordData(fields, payload) {
   const source = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {}
@@ -10,25 +10,44 @@ export function coerceRecordData(fields, payload) {
   const errors = []
 
   for (const field of fields || []) {
-    if (!field?.key || !Object.prototype.hasOwnProperty.call(source, field.key)) continue
+    if (!field?.key) continue
 
-    const raw = source[field.key]
+    const hasValue = Object.prototype.hasOwnProperty.call(source, field.key)
+    const raw = hasValue ? source[field.key] : undefined
     const label = field.label || field.key
+    const required = Boolean(field.required)
+    const minLength = Number.isFinite(Number(field.minLength))
+      ? Math.max(0, Number(field.minLength))
+      : 0
+
+    const isEmpty =
+      raw == null ||
+      (typeof raw === 'string' && raw.trim() === '') ||
+      (field.type === 'boolean' && raw === '')
+
+    if (!hasValue || isEmpty) {
+      if (required) {
+        errors.push(`“${label}” is required.`)
+      }
+      if (hasValue) {
+        data[field.key] = field.type === 'boolean' ? false : field.type === 'number' ? '' : ''
+      }
+      continue
+    }
 
     switch (field.type) {
       case 'email': {
-        const value = raw == null ? '' : String(raw).trim().toLowerCase()
-        if (value && !EMAIL_PATTERN.test(value)) {
+        const value = String(raw).trim().toLowerCase()
+        if (!EMAIL_PATTERN.test(value)) {
           errors.push(`“${label}” must be a valid email.`)
+        }
+        if (minLength && value.length < minLength) {
+          errors.push(`“${label}” must be at least ${minLength} characters.`)
         }
         data[field.key] = value
         break
       }
       case 'number': {
-        if (raw === '' || raw == null) {
-          data[field.key] = ''
-          break
-        }
         const number = typeof raw === 'number' ? raw : Number(String(raw).trim())
         if (Number.isNaN(number)) {
           errors.push(`“${label}” must be a number.`)
@@ -50,7 +69,7 @@ export function coerceRecordData(fields, payload) {
         break
       }
       case 'date': {
-        const value = raw == null ? '' : String(raw).trim()
+        const value = String(raw).trim()
         if (value && Number.isNaN(Date.parse(value))) {
           errors.push(`“${label}” must be a valid date.`)
         }
@@ -58,7 +77,11 @@ export function coerceRecordData(fields, payload) {
         break
       }
       default: {
-        data[field.key] = raw == null ? '' : String(raw)
+        const value = String(raw)
+        if (minLength && value.trim().length < minLength) {
+          errors.push(`“${label}” must be at least ${minLength} characters.`)
+        }
+        data[field.key] = value
       }
     }
   }

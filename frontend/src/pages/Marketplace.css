@@ -551,6 +551,28 @@
   margin: 0 0 0.75rem;
 }
 
+.vf-market-shot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.vf-market-shot {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--vf-radius);
+  border: 1px solid var(--vf-border, #e5e5e0);
+  background: var(--vf-bg-soft, #f6f6f2);
+  aspect-ratio: 4 / 3;
+}
+
+.vf-market-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .vf-market-page-list,
 .vf-developer-contacts {
   display: flex;

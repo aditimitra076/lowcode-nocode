@@ -1,0 +1,217 @@
+HOW THE BLACK BOX TEST AND THE WHITE BOX TEST WORK
+VisualForge Studio - folder: lowcode-nocode/test
+====================================================================
+
+1. THE IDEA IN ONE MINUTE
+-------------------------
+Black box test  (Member 1)
+  Treats the running system as a closed box. It sends requests to the
+  REST API and compares the answer with what the Software Requirements
+  Specification (SRS) says. It does not look at the source code.
+  File: blackbox.mjs (+ helpers/testAdmin.mjs)
+
+White box test  (Member 2)
+  Opens the box. It calls single functions of the source code directly
+  and checks every branch, path and limit inside them. It needs no
+  server and no database.
+  File: whitebox.test.mjs
+
+Both give a result for every test: expected result, actual result,
+PASS or FAIL.
+
+
+2. HOW TO RUN THEM
+------------------
+White box (nothing else needs to run):
+    cd lowcode-nocode/test
+    npm run test:white
+
+Black box (the backend must be running):
+    1. cd lowcode-nocode/backend   then   npm run dev
+    2. in a second terminal:
+       cd lowcode-nocode/test
+       npm run test:black
+    (another address: set API_URL, for example http://127.0.0.1:5055)
+
+Node.js 22 or newer is needed. The tests use only Node's own tools and
+the node_modules of the backend, so run "npm install" in backend once.
+
+
+3. THE BLACK BOX TEST (blackbox.mjs)
+------------------------------------
+3.1 What happens when you run it
+  1. The script sends HTTP requests with fetch() to the API.
+  2. For every step it knows the EXPECTED answer (taken from the SRS),
+     for example "status 400".
+  3. It reads the ACTUAL answer and compares the two.
+  4. It prints PASS or FAIL and stores the step in a list.
+  5. At the end it writes results/blackbox-results.json and prints a
+     summary line, for example "96 checks, 95 passed, 1 failed".
+
+3.2 The small building blocks inside the script
+  call(method, url, ...)   sends one request and returns status + body
+  check(id, step, ...)     compares expected and actual, records result
+  record(...)              stores one line of the result list
+  register(), login()      create a test user / sign in
+
+3.3 The ten test cases
+  BB-01  Register a new account, then the same email again (409)
+  BB-02  Registration input: password of 7 and 8 characters, no digit,
+         no letter, bad email, empty name
+  BB-03  Login: right/wrong password, unknown email, empty body
+  BB-04  Access without a token, with a wrong token, with the wrong role
+  BB-05  Project limits: 20 and 21 pages, unknown component type,
+         nesting of 12 and 13 levels
+  BB-06  Table and records: types, required field, minimum length,
+         duplicate table name
+  BB-07  Upload: allowed type, forbidden type, exactly 8 MB, 8 MB + 1 byte
+  BB-08  Collaborators: Viewer cannot save, Editor can, outsider gets 404
+  BB-09  Administrator: list, suspend, activate, delete accounts,
+         activity log (including the new delete-account function)
+  BB-10  Marketplace: submit, reject, approve, search, template copy
+
+3.4 Techniques used (so you can explain them)
+  Equivalence partitioning  one value from each group of inputs
+  Boundary values           7/8 characters, 20/21 pages, 8 MB / 8 MB+1
+  Decision table            known/unknown email x right/wrong password
+  Scenario test             a whole story (owner shares a project with a
+                            Viewer, Viewer fails to save, owner upgrades
+                            the role, Viewer can save)
+  Error forcing             missing token, wrong role, invalid ids
+
+3.5 Example, step by step (BB-02, boundary of the password length)
+  input "abc1234"   (7 characters)  expected 400   actual 400   PASS
+  input "abcd1234"  (8 characters)  expected 201   actual 201   PASS
+  The two values lie on both sides of the limit of 8 characters.
+
+3.6 Why an administrator is needed, and how it is handled
+  The Register screen only creates Developers. BB-09 and BB-10 need an
+  Administrator (to suspend, delete, review). helpers/testAdmin.mjs
+  therefore writes two temporary administrators
+  (qa.admin1/2.<stamp>@qa.test) directly into the database that the
+  backend uses. It reads MONGODB_URI from backend/.env through dotenv in
+  its own process and never prints it. It creates and removes only
+  accounts whose email matches qa.admin<n>.<stamp>@qa.test.
+
+3.7 What it cleans up at the end
+  - every test user (qa.m1.*@qa.test) is deleted through the
+    administrator's delete-account function; this also deletes their
+    projects, tables, records and listings
+  - the uploaded test files are deleted from backend/uploads
+  - the two temporary administrators are removed
+  Nothing should be left in the database.
+
+3.8 Current result
+  96 checks, 95 passed, 1 failed.
+  The failure is BB-05 step 7: a page tree nested exactly 12 levels deep
+  is refused (400) although the SRS allows 12. This is defect D-01.
+
+
+4. THE WHITE BOX TEST (whitebox.test.mjs)
+-----------------------------------------
+4.1 What happens when you run it
+  1. The file imports functions straight from the backend code, for
+     example coerceRecordData, validatePages, requireAuth, deleteUser.
+  2. For every function it prepares inputs so that EVERY statement,
+     branch, path and loop limit of the function is run at least once.
+  3. node:test runs the tests; assert checks the actual result.
+  4. With --experimental-test-coverage Node measures which lines and
+     branches were really executed and prints a coverage table.
+  No server and no database are used.
+
+4.2 The nine test cases
+  WB-01  coerceRecordData: one valid value of every field type
+  WB-02  coerceRecordData: every error branch and empty-value branch
+  WB-03  projectAccess: isOwner, canView, canEdit for owner, Editor,
+         Viewer and stranger
+  WB-04  validatePages: one input for every return path
+  WB-05  validatePages / countComponents: limits 12/13 levels and
+         2000/2001 components (expected to show defect D-01)
+  WB-06  middleware: requireAuth, requireAdmin, requireRole, optionalAuth
+         (the paths that stop before the database)
+  WB-07  adminController.deleteUser (new): every branch and the cascade
+  WB-08  adminController.updateUserStatus: every branch
+  WB-09  adminController.listUsers and listLogs: filters, limit, errors
+
+4.3 Test doubles (how code that needs a database is tested)
+  The administration functions normally call the database through
+  Mongoose models. The test replaces those calls with small fake
+  functions (t.mock.method), and it records what was called. Example for
+  deleteUser:
+    - the fake User.findById returns a prepared user
+    - the fake Project.find returns two projects
+    - the test then checks that records were deleted before tables and
+      projects, that the profile and listings were removed, that the user
+      was deleted and that "user.delete" was logged.
+  The same idea is used for the request and the response: mockReq() and
+  mockRes() are tiny objects that remember the status code and body.
+
+4.4 Techniques used
+  Statement coverage   every line of the function runs at least once
+  Branch coverage      every if/else is made true and false
+  Path testing         one input for every independent path
+  Loop / boundary      the limits inside the code, on both sides
+  Exception partitions inputs that trigger each error branch
+
+4.5 Example (WB-05, the limit inside the code)
+  step 1  nesting of 11 levels  expected accepted  actual accepted PASS
+  step 2  nesting of 12 levels  expected accepted  actual REFUSED  FAIL
+  step 3  nesting of 13 levels  expected refused   actual refused  PASS
+  Reason found in the code: validateComponents checks the child list of
+  a node at the next depth even when the list is empty, so a node at
+  level 12 already fails the test "depth > 12".
+
+4.6 How to read the output
+  A line starting with a check mark is a pass, a cross is a fail.
+  The table at the end shows, per file, line %, branch %, function %
+  and the line numbers that were NOT executed. Lines that need the
+  database (for example findAccessibleProject) are not executed by the
+  white box test; the black box test covers them through the API.
+
+4.7 Current result
+  41 tests, 39 passed, 2 failed (the step of WB-05 and its parent test,
+  both from defect D-01).
+  Coverage: adminController.js 100 % lines, branches and functions;
+  requireRole.js 100 %; fieldData.js 100 % lines, 93 % branches.
+
+
+5. BLACK BOX AND WHITE BOX COMPARED
+-----------------------------------
+                    BLACK BOX              WHITE BOX
+  Tester            Member 1               Member 2
+  Looks at          requirements (SRS)     source code
+  Runs              the whole system       single functions
+  Needs             backend + database     nothing
+  Finds             wrong behaviour seen   wrong logic inside the code
+                    by a user              (branches, limits)
+  Weak spot         cannot say which line  cannot see problems that
+                    is wrong               appear only when parts work
+                                           together
+  Result file       results/blackbox-      results/whitebox-output.txt
+                    results.json
+
+They support each other. D-01 was found by the white box test at the
+limit inside the code and confirmed by the black box test through the
+API (BB-05 step 7).
+
+
+6. FILES IN THE FOLDER
+----------------------
+  blackbox.mjs            the black box test
+  helpers/testAdmin.mjs   creates/removes the temporary administrators
+  whitebox.test.mjs       the white box test
+  package.json            the commands npm run test:white / test:black
+  results/                the last results of both tests
+  README.md               short instructions
+  HOW_THE_TESTS_WORK.txt  this file
+
+
+7. IF SOMETHING GOES WRONG
+--------------------------
+  "fetch failed" / ECONNREFUSED   the backend is not running (black box)
+  BB-09 / BB-10 fail at the start the backend was started before the new
+                                  delete-account route existed: restart it
+  "MONGODB_URI is not set"        backend/.env is missing or incomplete
+  A test user is left behind      sign in as administrator, open the
+                                  Admin page, Users tab, press Delete on
+                                  the account qa.m1.*@qa.test

@@ -2,18 +2,57 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { COMPONENT_DEFS, resolveLayoutStyle } from './componentRegistry';
 import { fetchRecords, fetchTables, submitPublicForm } from '../api/tableApi';
 import { useBuilderStore } from '../store/builderStore';
+import { inputTypeForField } from './fieldTypes';
 
-function inputTypeForField(type) {
-  if (type === 'email') return 'email';
-  if (type === 'number') return 'number';
-  if (type === 'date') return 'date';
-  return 'text';
+function useTableRecords(tableId, projectId, enabled) {
+  const dataRevision = useBuilderStore((state) => state.dataRevision);
+  const [rows, setRows] = useState([]);
+  const [schemaFields, setSchemaFields] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!enabled || !tableId || !projectId || !/^[a-f0-9]{24}$/i.test(projectId)) {
+      setRows([]);
+      setSchemaFields([]);
+      setLoading(false);
+      setError('');
+      return undefined;
+    }
+
+    setLoading(true);
+    setError('');
+    Promise.all([fetchTables(projectId), fetchRecords(projectId, tableId)]).then(
+      ([tablesResult, recordsResult]) => {
+        if (cancelled) return;
+        if (!tablesResult.ok) {
+          setError(tablesResult.message || 'Could not load table.');
+          setRows([]);
+          setLoading(false);
+          return;
+        }
+        const table = (tablesResult.data.tables || []).find((item) => item.id === tableId);
+        setSchemaFields(table?.fields || []);
+        if (!recordsResult.ok) {
+          setError(recordsResult.message || 'Could not load records.');
+          setRows([]);
+        } else {
+          setRows(recordsResult.data.records || []);
+        }
+        setLoading(false);
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, tableId, projectId, dataRevision]);
+
+  return { rows, schemaFields, loading, error };
 }
 
 function TablePreview({ props, projectId }) {
-  const [rows, setRows] = useState([]);
-  const [schemaFields, setSchemaFields] = useState([]);
-  const dataRevision = useBuilderStore((state) => state.dataRevision);
   const isApi =
     props.dataSource === 'api' ||
     (!props.dataSource && Boolean(props.tableId));
@@ -22,36 +61,18 @@ function TablePreview({ props, projectId }) {
     .map((column) => column.trim())
     .filter(Boolean);
   const rowCount = Math.max(0, Number(props.rows) || 0);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!isApi || !props.tableId || !projectId || !/^[a-f0-9]{24}$/i.test(projectId)) {
-      setRows([]);
-      setSchemaFields([]);
-      return undefined;
-    }
-
-    fetchTables(projectId).then((result) => {
-      if (cancelled || !result.ok) return;
-      const table = (result.data.tables || []).find((item) => item.id === props.tableId);
-      setSchemaFields(table?.fields || []);
-    });
-
-    fetchRecords(projectId, props.tableId).then((result) => {
-      if (cancelled) return;
-      if (result.ok) setRows(result.data.records || []);
-      else setRows([]);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isApi, props.tableId, projectId, dataRevision]);
+  const { rows, schemaFields, loading, error } = useTableRecords(
+    props.tableId,
+    projectId,
+    isApi,
+  );
 
   if (isApi) {
     if (!props.tableId) {
       return <div className="vf-el-placeholder">Table — choose a data table in properties</div>;
     }
+    if (loading) return <div className="vf-el-placeholder">Loading records…</div>;
+    if (error) return <div className="vf-el-placeholder">{error}</div>;
 
     const keys = columnKeys.length
       ? columnKeys
@@ -114,6 +135,51 @@ function TablePreview({ props, projectId }) {
         ))}
       </tbody>
     </table>
+  );
+}
+
+function BoundList({ props, projectId, style }) {
+  const { rows, loading, error } = useTableRecords(props.tableId, projectId, true);
+  const fieldKey = props.itemField || 'name';
+
+  if (!props.tableId) {
+    return <div className="vf-el-placeholder">List — choose a data table</div>;
+  }
+  if (loading) return <div className="vf-el-placeholder">Loading list…</div>;
+  if (error) return <div className="vf-el-placeholder">{error}</div>;
+  if (!rows.length) return <div className="vf-el-placeholder">No records yet</div>;
+
+  return (
+    <ul className="vf-el-list" style={style}>
+      {rows.map((record) => (
+        <li key={record.id}>{String(record.data?.[fieldKey] ?? '')}</li>
+      ))}
+    </ul>
+  );
+}
+
+function BoundCards({ props, projectId, style, children }) {
+  const { rows, loading, error } = useTableRecords(props.tableId, projectId, true);
+  const titleField = props.titleField || 'name';
+  const textField = props.textField || 'email';
+
+  if (!props.tableId) {
+    return <div className="vf-el-placeholder">Card — choose a data table</div>;
+  }
+  if (loading) return <div className="vf-el-placeholder">Loading cards…</div>;
+  if (error) return <div className="vf-el-placeholder">{error}</div>;
+  if (!rows.length) return <div className="vf-el-placeholder">No records yet</div>;
+
+  return (
+    <div className="vf-el-card-stack" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {rows.map((record) => (
+        <div key={record.id} className="vf-el vf-el-card" style={style}>
+          <h4 className="vf-el-card-title">{String(record.data?.[titleField] ?? '')}</h4>
+          <p className="vf-el-card-text">{String(record.data?.[textField] ?? '')}</p>
+          {children}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -180,7 +246,16 @@ function BoundForm({ node, style, children }) {
       }
     }
 
-    const result = await submitPublicForm(projectId, node.id, data);
+    // Public submit reads the saved project from the DB — persist first.
+    setStatus('Saving…');
+    const saved = await useBuilderStore.getState().saveProject();
+    if (!saved.ok) {
+      setStatus(saved.message || 'Save the project before submitting the form.');
+      return;
+    }
+    const submitProjectId = saved.projectId || useBuilderStore.getState().projectId;
+
+    const result = await submitPublicForm(submitProjectId, node.id, data);
     if (result.ok) {
       form.reset();
       setFormKey((key) => key + 1);
@@ -222,7 +297,12 @@ function BoundForm({ node, style, children }) {
             <label key={field.key} className="vf-el-form-field">
               <span>{field.label || field.key}</span>
               {field.type === 'boolean' ? (
-                <select name={field.key} disabled={!previewing} defaultValue="false">
+                <select
+                  name={field.key}
+                  disabled={!previewing}
+                  defaultValue="false"
+                  required={Boolean(field.required)}
+                >
                   <option value="false">No</option>
                   <option value="true">Yes</option>
                 </select>
@@ -231,7 +311,8 @@ function BoundForm({ node, style, children }) {
                   name={field.key}
                   type={inputTypeForField(field.type)}
                   disabled={!previewing}
-                  required={field.type === 'email'}
+                  required={Boolean(field.required) || field.type === 'email'}
+                  minLength={Number(field.minLength) > 0 ? Number(field.minLength) : undefined}
                   inputMode={field.type === 'email' ? 'email' : field.type === 'number' ? 'decimal' : undefined}
                   autoComplete={field.type === 'email' ? 'email' : undefined}
                 />
@@ -302,6 +383,32 @@ export default function ComponentBody({ node, children }) {
             </div>
           )}
         </div>
+      );
+    }
+    case 'file': {
+      if (!props.src) {
+        return (
+          <div className="vf-el-placeholder" style={layoutStyle}>
+            File — upload a document in the property panel
+          </div>
+        );
+      }
+      const openInNewTab = props.openInNewTab !== 'no' && props.openInNewTab !== false;
+      return (
+        <a
+          className="vf-el vf-el-file"
+          href={props.src}
+          download={openInNewTab ? undefined : true}
+          target={openInNewTab ? '_blank' : undefined}
+          rel={openInNewTab ? 'noreferrer' : undefined}
+          style={{
+            ...layoutStyle,
+            display: 'inline-block',
+            textDecoration: 'underline',
+          }}
+        >
+          {props.label || 'Download file'}
+        </a>
       );
     }
     case 'button': {
@@ -426,7 +533,14 @@ export default function ComponentBody({ node, children }) {
         />
       );
     }
-    case 'card':
+    case 'card': {
+      if (props.dataSource === 'api') {
+        return (
+          <BoundCards props={props} projectId={projectId} style={layoutStyle}>
+            {children}
+          </BoundCards>
+        );
+      }
       return (
         <div className="vf-el vf-el-card" style={layoutStyle}>
           {props.title ? <h4 className="vf-el-card-title">{props.title}</h4> : null}
@@ -434,7 +548,11 @@ export default function ComponentBody({ node, children }) {
           {children}
         </div>
       );
+    }
     case 'list': {
+      if (props.dataSource === 'api') {
+        return <BoundList props={props} projectId={projectId} style={layoutStyle} />;
+      }
       const items = String(props.items || '')
         .split('\n')
         .filter((line) => line.trim() !== '');

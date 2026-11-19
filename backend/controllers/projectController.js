@@ -350,6 +350,51 @@ export async function addCollaborator(req, res, next) {
   }
 }
 
+export async function updateCollaborator(req, res, next) {
+  const memberId = req.params.userId
+  const role = COLLABORATOR_ROLES.includes(req.body?.role) ? req.body.role : null
+
+  if (!role) {
+    return res.status(400).json({ message: "Role must be 'Editor' or 'Viewer'." })
+  }
+
+  try {
+    const project = await findAccessibleProject(req.params.id, req.user.id)
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' })
+    }
+    if (!isOwner(project, req.user.id)) {
+      return res.status(403).json({ message: 'Only the project owner can manage collaborators.' })
+    }
+
+    const member = (project.collaborators || []).find(
+      (item) => String(item.user) === String(memberId),
+    )
+    if (!member) {
+      return res.status(404).json({ message: 'Collaborator not found.' })
+    }
+
+    member.role = role
+    await project.save()
+    await logActivity({
+      actor: req.user.id,
+      action: 'collaborator.update',
+      target: project.id,
+      meta: { userId: memberId, role },
+    })
+
+    return res.json({
+      collaborators: project.collaborators.map((item) => ({
+        user: String(item.user),
+        email: item.email,
+        role: item.role,
+      })),
+    })
+  } catch (error) {
+    return next(error)
+  }
+}
+
 export async function removeCollaborator(req, res, next) {
   const memberId = req.params.userId
 

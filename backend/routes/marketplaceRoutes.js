@@ -7,13 +7,13 @@ import {
   listPendingListings,
   reviewListing,
 } from '../controllers/marketplaceController.js'
-import requireAuth, { requireAdmin } from '../middleware/auth.js'
+import requireAuth, { optionalAuth, requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
 // Public marketplace browsing needs no authentication (FR-41, FR-42, FR-43).
 router.get('/listings', listListings)
-router.get('/listings/:id', getListing)
+router.get('/listings/:id', optionalAuth, getListing)
 
 // Publishing and using a template require a registered account.
 router.post('/listings', requireAuth, createOrUpdateListing)

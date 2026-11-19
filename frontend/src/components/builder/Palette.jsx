@@ -73,6 +73,13 @@ function PaletteIcon({ name }) {
           <path d="M7 8h10M7 16h10" opacity="0.35" />
         </svg>
       );
+    case 'file':
+      return (
+        <svg {...common}>
+          <path d="M8 3h6l4 4v14H8V3z" />
+          <path d="M14 3v4h4M10 12h6M10 16h6" />
+        </svg>
+      );
     case 'card':
       return (
         <svg {...common}>

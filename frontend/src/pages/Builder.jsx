@@ -18,6 +18,7 @@ import { COMPONENT_DEFS } from '../builder/componentRegistry';
 import { containsNode, findNode, findParentInfo } from '../builder/treeUtils';
 import { useActivePage, useBuilderStore } from '../store/builderStore';
 import { createListing } from '../api/marketplaceApi';
+import { uploadFile } from '../api/uploadApi';
 import './Builder.css';
 
 const OBJECT_ID = /^[a-f0-9]{24}$/i;
@@ -119,6 +120,7 @@ export default function Builder() {
   const [showDataManager, setShowDataManager] = useState(false);
   const [publishDescription, setPublishDescription] = useState('');
   const [publishTags, setPublishTags] = useState('');
+  const [publishScreenshots, setPublishScreenshots] = useState([]);
   const [publishStatus, setPublishStatus] = useState('');
   const saveTimer = useRef(null);
   const canEditData = isOwner || accessRole === 'Editor';
@@ -259,9 +261,9 @@ export default function Builder() {
     }
   };
 
-  const handlePublish = async (event) => {
+  const handlePublish = async (event, { submit = true } = {}) => {
     event.preventDefault();
-    setPublishStatus('Publishing…');
+    setPublishStatus(submit ? 'Submitting for review…' : 'Saving draft…');
     let id = storeProjectId;
     if (!/^[a-f0-9]{24}$/i.test(id)) {
       const saved = await saveProject();
@@ -280,7 +282,8 @@ export default function Builder() {
         .split(',')
         .map((tag) => tag.trim())
         .filter(Boolean),
-      submit: true,
+      screenshots: publishScreenshots,
+      submit,
     });
 
     if (!result.ok) {
@@ -288,10 +291,52 @@ export default function Builder() {
       return;
     }
 
+    const listingId = result.data?.listing?.id;
+    const listingStatus = result.data?.listing?.status;
     setPublishDescription('');
     setPublishTags('');
+    setPublishScreenshots([]);
     setPublishStatus('');
     setShowPublish(false);
+
+    // Owner can Visit immediately (even while Pending/Draft). Marketplace browse waits for Approved.
+    if (listingId) {
+      const goVisit = window.confirm(
+        listingStatus === 'Approved'
+          ? 'Published! Open the live site now?'
+          : listingStatus === 'Draft'
+            ? 'Draft saved. Open your site preview now?'
+            : 'Submitted for review. Open your site preview now? (Marketplace Visit works for everyone after admin approval.)',
+      );
+      if (goVisit) {
+        navigate(`/site/${listingId}`);
+      }
+    }
+  };
+
+  const handleScreenshotPick = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    if (publishScreenshots.length >= 8) {
+      setPublishStatus('A listing can have at most 8 screenshots.');
+      return;
+    }
+
+    setPublishStatus('Uploading screenshot…');
+    const remaining = 8 - publishScreenshots.length;
+    const next = [...publishScreenshots];
+    for (const file of files.slice(0, remaining)) {
+      const result = await uploadFile(file);
+      if (!result.ok) {
+        setPublishStatus(result.message);
+        return;
+      }
+      const url = result.data?.url || result.data?.path;
+      if (url) next.push(url);
+    }
+    setPublishScreenshots(next);
+    setPublishStatus(next.length ? `${next.length} screenshot${next.length === 1 ? '' : 's'} attached.` : '');
   };
 
   return (
@@ -456,7 +501,15 @@ export default function Builder() {
                         <button
                           type="button"
                           className="vf-mini-btn"
-                          onClick={() => removePage(item.id)}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Delete page “${item.name}”? This cannot be undone from here.`,
+                              )
+                            ) {
+                              removePage(item.id);
+                            }
+                          }}
                         >
                           ×
                         </button>
@@ -493,10 +546,10 @@ export default function Builder() {
           <form
             className="vf-modal-card"
             onClick={(event) => event.stopPropagation()}
-            onSubmit={handlePublish}
+            onSubmit={(event) => handlePublish(event, { submit: true })}
           >
             <h3>Publish to marketplace</h3>
-            <p>Submit this project for administrator review.</p>
+            <p>Save a draft or submit this project for administrator review.</p>
             <textarea
               rows={4}
               value={publishDescription}
@@ -509,10 +562,44 @@ export default function Builder() {
               onChange={(event) => setPublishTags(event.target.value)}
               placeholder="Tags (comma separated)"
             />
+            <label className="vf-publish-shots">
+              Screenshots
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleScreenshotPick}
+              />
+            </label>
+            {publishScreenshots.length ? (
+              <ul className="vf-publish-shot-list">
+                {publishScreenshots.map((url) => (
+                  <li key={url}>
+                    <img src={url} alt="" />
+                    <button
+                      type="button"
+                      className="vf-btn"
+                      onClick={() =>
+                        setPublishScreenshots((current) => current.filter((item) => item !== url))
+                      }
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             {publishStatus ? <p className="vf-panel-note">{publishStatus}</p> : null}
             <div className="vf-modal-actions">
               <button type="button" className="vf-btn" onClick={() => setShowPublish(false)}>
                 Cancel
+              </button>
+              <button
+                type="button"
+                className="vf-btn"
+                onClick={(event) => handlePublish(event, { submit: false })}
+              >
+                Save draft
               </button>
               <button type="submit" className="vf-btn vf-btn-primary">
                 Submit for review

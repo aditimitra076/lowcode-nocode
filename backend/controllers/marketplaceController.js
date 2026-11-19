@@ -3,6 +3,8 @@ import Project from '../modules/Project.js'
 import User from '../modules/User.js'
 import DeveloperProfile from '../modules/DeveloperProfile.js'
 import MarketplaceListing from '../modules/MarketplaceListing.js'
+import DataTable from '../modules/DataTable.js'
+import TableRecord from '../modules/TableRecord.js'
 import { logActivity } from '../modules/ActivityLog.js'
 import { countComponents } from './projectController.js'
 import { isOwner } from '../utils/projectAccess.js'
@@ -41,6 +43,28 @@ export function clonePages(pages) {
     name: page.name,
     path: page.path,
     components: cloneNodes(page.components),
+  }))
+}
+
+/** Remap form/table props.tableId after cloning DataTable docs into a new project. */
+export function remapTableIds(pages, idMap) {
+  const walk = (nodes) =>
+    (Array.isArray(nodes) ? nodes : []).map((node) => {
+      const props = { ...(node.props || {}) }
+      const oldId = props.tableId != null ? String(props.tableId) : ''
+      if (oldId && idMap.has(oldId)) {
+        props.tableId = idMap.get(oldId)
+      }
+      return {
+        ...node,
+        props,
+        children: walk(node.children),
+      }
+    })
+
+  return (Array.isArray(pages) ? pages : []).map((page) => ({
+    ...page,
+    components: walk(page.components),
   }))
 }
 
@@ -190,8 +214,16 @@ export async function getListing(req, res, next) {
   }
 
   try {
-    const listing = await MarketplaceListing.findOne({ _id: id, status: 'Approved' })
+    const listing = await MarketplaceListing.findById(id)
     if (!listing) {
+      return res.status(404).json({ message: 'Template not found or is not approved.' })
+    }
+
+    const isApproved = listing.status === 'Approved'
+    const isDeveloper =
+      req.user && String(listing.developer) === String(req.user.id || req.user._id)
+    // Public Visit: approved only. Owner can open their Pending/Draft listing as a site.
+    if (!isApproved && !isDeveloper) {
       return res.status(404).json({ message: 'Template not found or is not approved.' })
     }
 
@@ -230,11 +262,45 @@ export async function cloneListing(req, res, next) {
     }
 
     const name = `${project.name} (Template)`.slice(0, 120)
+    const clonedPages = clonePages(project.pages)
     const clone = await Project.create({
       owner: req.user.id,
       name,
-      pages: clonePages(project.pages),
+      pages: clonedPages,
     })
+
+    // Copy data tables + records, then remap tableId props on the cloned pages.
+    const sourceTables = await DataTable.find({ project: project._id })
+    const idMap = new Map()
+    for (const table of sourceTables) {
+      const created = await DataTable.create({
+        project: clone._id,
+        name: table.name,
+        fields: (table.fields || []).map((field) => ({
+          key: field.key,
+          label: field.label,
+          type: field.type || 'text',
+          required: Boolean(field.required),
+          minLength: Number(field.minLength) || 0,
+        })),
+      })
+      idMap.set(String(table._id), String(created._id))
+
+      const records = await TableRecord.find({ table: table._id }).limit(500)
+      if (records.length) {
+        await TableRecord.insertMany(
+          records.map((record) => ({
+            table: created._id,
+            data: record.data || {},
+          })),
+        )
+      }
+    }
+
+    if (idMap.size) {
+      clone.pages = remapTableIds(clone.pages, idMap)
+      await clone.save()
+    }
 
     return res.status(201).json({
       project: {

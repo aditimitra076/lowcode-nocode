@@ -1290,6 +1290,46 @@ body:has(.vf-home-wrapper)::-webkit-scrollbar-thumb:hover {
   border-radius: 12px;
   font-size: 1.05rem;
   border: 1px solid transparent;
+  background: #eef5ff;
+  border-color: #c9ddff;
+  color: #163a7a;
+}
+
+.vf-data-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vf-data-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.95rem;
+  color: var(--vf-text-muted);
+}
+
+.vf-data-form input,
+.vf-data-form textarea {
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--vf-border-strong, var(--vf-border));
+  background: #ffffff;
+  color: var(--vf-text);
+  font: inherit;
+}
+
+.vf-data-form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.vf-field-inline {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
 }
 
 .vf-banner-error {

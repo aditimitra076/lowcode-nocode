@@ -1,30 +1,4 @@
-import { getAuthToken } from './authApi';
-
-async function request(path, options = {}) {
-  const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {}),
-  };
-
-  let response;
-  try {
-    response = await fetch(path, { ...options, headers });
-  } catch {
-    return {
-      ok: false,
-      status: 0,
-      message: 'Could not reach the API server. Is the backend running?',
-    };
-  }
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    return { ok: false, status: response.status, message: data.message || 'Request failed.' };
-  }
-  return { ok: true, status: response.status, data };
-}
+import { request } from './client';
 
 export function fetchUsers() {
   return request('/api/admin/users');
@@ -37,6 +11,16 @@ export function updateUserStatus(userId, status) {
   });
 }
 
-export function fetchLogs() {
-  return request('/api/admin/logs');
+export function deleteUser(userId) {
+  return request(`/api/admin/users/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+}
+
+export function fetchLogs({ action, actor, from, to } = {}) {
+  const params = new URLSearchParams();
+  if (action) params.set('action', action);
+  if (actor) params.set('actor', actor);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.toString();
+  return request(`/api/admin/logs${query ? `?${query}` : ''}`);
 }

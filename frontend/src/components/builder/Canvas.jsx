@@ -2,10 +2,7 @@ import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useActivePage, useBuilderStore } from '../../store/builderStore';
 import ComponentNode, { StaticNode } from './ComponentNode';
-
-function DropLine({ show }) {
-  return show ? <div className="vf-drop-line" aria-hidden="true" /> : null;
-}
+import DropLine from './DropLine';
 
 export default function Canvas() {
   const page = useActivePage();

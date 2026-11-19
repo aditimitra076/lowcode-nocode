@@ -3,6 +3,7 @@ import {
   addCollaborator,
   fetchCollaborators,
   removeCollaborator,
+  updateCollaborator,
 } from '../../api/projectApi';
 import { useBuilderStore } from '../../store/builderStore';
 
@@ -48,8 +49,20 @@ export default function CollaboratorsPanel() {
     setMessage('Collaborator added.');
   };
 
+  const handleRoleChange = async (userId, nextRole) => {
+    if (!isOwner) return;
+    const result = await updateCollaborator(projectId, userId, { role: nextRole });
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+    setCollaborators(result.data.collaborators || []);
+    setMessage('Role updated.');
+  };
+
   const handleRemove = async (userId) => {
     if (!isOwner) return;
+    if (!window.confirm('Remove this collaborator?')) return;
     const result = await removeCollaborator(projectId, userId);
     if (!result.ok) {
       setMessage(result.message);
@@ -70,7 +83,18 @@ export default function CollaboratorsPanel() {
           <div key={member.user} className="vf-collab-item">
             <div>
               <strong>{member.email}</strong>
-              <span>{member.role}</span>
+              {isOwner ? (
+                <select
+                  aria-label={`Role for ${member.email}`}
+                  value={member.role}
+                  onChange={(event) => handleRoleChange(member.user, event.target.value)}
+                >
+                  <option value="Editor">Editor</option>
+                  <option value="Viewer">Viewer</option>
+                </select>
+              ) : (
+                <span>{member.role}</span>
+              )}
             </div>
             {isOwner ? (
               <button type="button" className="vf-mini-btn" onClick={() => handleRemove(member.user)}>

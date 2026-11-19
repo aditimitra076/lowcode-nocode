@@ -1,3 +1,4 @@
+import { countNodes } from '../builder/treeUtils'
 /**
  * Built-in approved blueprints shown when the marketplace API is unreachable.
  * Each entry mirrors the public marketplace listing shape, including the
@@ -391,22 +392,10 @@ export function getSampleListings() {
       ...blueprint,
       pages,
       pagesCount: pages.length,
-      componentCount: pages.reduce(
-        (total, page) =>
-          total +
-          page.components.reduce((sum, component) => sum + 1 + countChildren(component), 0),
-        0,
-      ),
+      componentCount: pages.reduce((total, page) => total + countNodes(page.components), 0),
       screenshots: [],
     }
   })
-}
-
-function countChildren(component) {
-  return (component.children || []).reduce(
-    (total, child) => total + 1 + countChildren(child),
-    0,
-  )
 }
 
 export function getSampleTemplatePages(listingId) {

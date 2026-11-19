@@ -1,0 +1,779 @@
+{
+  "stamp": "mwmtcanb",
+  "when": "2026-11-19T00:29:55.830Z",
+  "cleanup": {
+    "testUsersDeleted": 3,
+    "testAdminsRemoved": 2,
+    "filesDeleted": 2
+  },
+  "results": [
+    {
+      "id": "BB-01",
+      "step": "1",
+      "input": "register name, new email, password Test1234pass",
+      "expected": "201, token, role Developer, no password in answer",
+      "actual": "201, token string, role Developer, password in answer: false",
+      "pass": true
+    },
+    {
+      "id": "BB-01",
+      "step": "2",
+      "input": "register again with the same email",
+      "expected": "409 already registered",
+      "actual": "409 This email is already registered",
+      "pass": true
+    },
+    {
+      "id": "BB-02",
+      "step": "3",
+      "input": "password abc1234 (7 characters)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-02",
+      "step": "4",
+      "input": "password abcdefgh (8 characters, no digit)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-02",
+      "step": "5",
+      "input": "password 12345678 (8 characters, no letter)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-02",
+      "step": "6",
+      "input": "password abcd1234 (8 characters, letter and digit)",
+      "expected": "201",
+      "actual": "201",
+      "pass": true
+    },
+    {
+      "id": "BB-02",
+      "step": "7",
+      "input": "email not-an-email",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-02",
+      "step": "8",
+      "input": "name with spaces only",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-03",
+      "step": "1",
+      "input": "registered email, right password",
+      "expected": "200 and token",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-03",
+      "step": "2",
+      "input": "registered email, wrong password",
+      "expected": "401",
+      "actual": "401 That email or password isn't right",
+      "pass": true
+    },
+    {
+      "id": "BB-03",
+      "step": "3",
+      "input": "unknown email, any password",
+      "expected": "401",
+      "actual": "401 That email or password isn't right",
+      "pass": true
+    },
+    {
+      "id": "BB-03",
+      "step": "4",
+      "input": "messages of step 2 and step 3 are the same (no user enumeration)",
+      "expected": "same text",
+      "actual": "same text",
+      "pass": true
+    },
+    {
+      "id": "BB-03",
+      "step": "5",
+      "input": "empty body",
+      "expected": "401",
+      "actual": "401",
+      "pass": true
+    },
+    {
+      "id": "BB-04",
+      "step": "1",
+      "input": "GET /api/projects without token",
+      "expected": "401",
+      "actual": "401",
+      "pass": true
+    },
+    {
+      "id": "BB-04",
+      "step": "2",
+      "input": "GET /api/projects with token \"abc\"",
+      "expected": "401",
+      "actual": "401",
+      "pass": true
+    },
+    {
+      "id": "BB-04",
+      "step": "3",
+      "input": "GET /api/admin/users as a Developer",
+      "expected": "403",
+      "actual": "403",
+      "pass": true
+    },
+    {
+      "id": "BB-04",
+      "step": "4",
+      "input": "POST /api/uploads without token",
+      "expected": "401",
+      "actual": "401",
+      "pass": true
+    },
+    {
+      "id": "BB-04",
+      "step": "5",
+      "input": "review route as a Developer",
+      "expected": "403",
+      "actual": "403",
+      "pass": true
+    },
+    {
+      "id": "BB-05",
+      "step": "1",
+      "input": "create project with empty name",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-05",
+      "step": "2",
+      "input": "create project with a name, no pages",
+      "expected": "201 and project with one page",
+      "actual": "201, pages 1",
+      "pass": true
+    },
+    {
+      "id": "BB-05",
+      "step": "3",
+      "input": "save 20 pages (upper boundary)",
+      "expected": "200",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-05",
+      "step": "4",
+      "input": "save 21 pages (above the boundary)",
+      "expected": "400",
+      "actual": "400 A project can have at most 20 pages.",
+      "pass": true
+    },
+    {
+      "id": "BB-05",
+      "step": "5",
+      "input": "save a component of unknown type",
+      "expected": "400",
+      "actual": "400 Unknown component type: spaceship",
+      "pass": true
+    },
+    {
+      "id": "BB-05",
+      "step": "6",
+      "input": "the stored project is unchanged by the refused saves (still 20 pages)",
+      "expected": "20 pages",
+      "actual": "20 pages",
+      "pass": true
+    },
+    {
+      "id": "BB-05",
+      "step": "7",
+      "input": "save a page tree nested 12 levels deep (upper boundary)",
+      "expected": "200",
+      "actual": "400 Components can be nested at most 12 levels deep.",
+      "pass": false
+    },
+    {
+      "id": "BB-05",
+      "step": "8",
+      "input": "save a page tree nested 13 levels deep (above the boundary)",
+      "expected": "400",
+      "actual": "400 Components can be nested at most 12 levels deep.",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "1",
+      "input": "create table Customers with 3 fields",
+      "expected": "201",
+      "actual": "201",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "2",
+      "input": "create a second table with the same name",
+      "expected": "409",
+      "actual": "409",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "3",
+      "input": "record name Anna, age \"31\", email Anna@Example.com",
+      "expected": "201, age 31 as number, email in lower case",
+      "actual": "201, age 31, email anna@example.com",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "4",
+      "input": "required field name missing",
+      "expected": "400",
+      "actual": "400 “Name” is required.",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "5",
+      "input": "name Al (2 characters, minimum 3)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "6",
+      "input": "name Ali (3 characters, boundary)",
+      "expected": "201",
+      "actual": "201",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "7",
+      "input": "email no-at-sign",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "8",
+      "input": "age abc (not a number)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-06",
+      "step": "9",
+      "input": "list records: only the 2 valid records were stored",
+      "expected": "2 records",
+      "actual": "2 records",
+      "pass": true
+    },
+    {
+      "id": "BB-07",
+      "step": "1",
+      "input": "PNG file of 12 bytes, type image/png",
+      "expected": "201 and an address",
+      "actual": "201",
+      "pass": true
+    },
+    {
+      "id": "BB-07",
+      "step": "2",
+      "input": "program file setup.exe, type application/x-msdownload",
+      "expected": "400",
+      "actual": "400 Allowed types: JPEG, PNG, GIF, WebP, PDF, TXT, CSV, DOC, DOCX, or ZIP.",
+      "pass": true
+    },
+    {
+      "id": "BB-07",
+      "step": "3",
+      "input": "ZIP of exactly 8 MB",
+      "expected": "201",
+      "actual": "201",
+      "pass": true
+    },
+    {
+      "id": "BB-07",
+      "step": "4",
+      "input": "ZIP of 8 MB + 1 byte",
+      "expected": "400",
+      "actual": "400 File must be 8MB or smaller.",
+      "pass": true
+    },
+    {
+      "id": "BB-07",
+      "step": "5",
+      "input": "request without a file",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "1",
+      "input": "owner adds a registered user as Viewer",
+      "expected": "201",
+      "actual": "201",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "2",
+      "input": "Viewer opens the project",
+      "expected": "200",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "3",
+      "input": "Viewer saves the project",
+      "expected": "403",
+      "actual": "403 You have view-only access to this project.",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "4",
+      "input": "owner changes the role to Editor",
+      "expected": "200",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "5",
+      "input": "Editor saves the project",
+      "expected": "200",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "6",
+      "input": "a user who is not a member opens the project",
+      "expected": "404",
+      "actual": "404",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "7",
+      "input": "owner adds an email that is not registered",
+      "expected": "404",
+      "actual": "404",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "8",
+      "input": "owner adds himself",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "9",
+      "input": "owner adds the same user again",
+      "expected": "409",
+      "actual": "409",
+      "pass": true
+    },
+    {
+      "id": "BB-08",
+      "step": "10",
+      "input": "Editor deletes the project",
+      "expected": "refused (only the owner can delete)",
+      "actual": "403 Only the project owner can delete it.",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "1",
+      "input": "log in with the administrator account",
+      "expected": "200, role Admin",
+      "actual": "200, role Admin",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "2",
+      "input": "administrator lists the users",
+      "expected": "200, the list contains the test owner",
+      "actual": "200, 18 users",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "3",
+      "input": "administrator suspends a Developer",
+      "expected": "200, status Suspended",
+      "actual": "200, status Suspended",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "4",
+      "input": "the suspended user logs in",
+      "expected": "403",
+      "actual": "403",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "5",
+      "input": "the suspended user uses a token that was issued before",
+      "expected": "403",
+      "actual": "403",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "6",
+      "input": "administrator activates the account; the user logs in again",
+      "expected": "200 and login 200",
+      "actual": "200 and login 200",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "7",
+      "input": "administrator suspends the own account",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "8",
+      "input": "administrator suspends another administrator",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "9",
+      "input": "status value Banned (not Active or Suspended)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "10",
+      "input": "administrator deletes the own account",
+      "expected": "400",
+      "actual": "400 You cannot delete your own account.",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "11",
+      "input": "administrator deletes another administrator",
+      "expected": "400",
+      "actual": "400 Admin accounts cannot be deleted here.",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "12",
+      "input": "a Developer calls the delete-account route",
+      "expected": "403",
+      "actual": "403",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "13",
+      "input": "delete with an id that is not valid (abc)",
+      "expected": "404",
+      "actual": "404",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "14",
+      "input": "delete with a valid id that no user has",
+      "expected": "404",
+      "actual": "404",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "15",
+      "input": "administrator deletes a Developer who is a collaborator of a project",
+      "expected": "200",
+      "actual": "200 {\"ok\":true,\"deleted\":{\"projects\":0}}",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "16",
+      "input": "the deleted user logs in",
+      "expected": "401",
+      "actual": "401",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "17",
+      "input": "the owner opens the project: the deleted user is no longer a collaborator",
+      "expected": "collaborator list without the deleted user",
+      "actual": "200, 0 collaborators",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "18",
+      "input": "delete the same user again",
+      "expected": "404",
+      "actual": "404",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "19",
+      "input": "administrator deletes a Developer who owns a project with a table, a record and a pending listing",
+      "expected": "200, 1 project deleted",
+      "actual": "200 {\"ok\":true,\"deleted\":{\"projects\":1}}",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "20",
+      "input": "the project of the deleted user can no longer be found",
+      "expected": "404",
+      "actual": "404",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "21",
+      "input": "the pending listing of the deleted user is gone",
+      "expected": "in the pending list before, not after",
+      "actual": "before true, after false",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "22",
+      "input": "the activity log, filtered by user.delete, shows the deletions",
+      "expected": "200 and at least 2 entries by the administrator",
+      "actual": "200, 2 entries",
+      "pass": true
+    },
+    {
+      "id": "BB-09",
+      "step": "23",
+      "input": "the activity log, filtered by user.suspend, shows the suspension",
+      "expected": "200 and at least 1 entry",
+      "actual": "200, 1 entries",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "1",
+      "input": "owner submits the project with description and 2 tags",
+      "expected": "200, status Pending",
+      "actual": "200, status Pending",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "2",
+      "input": "submit with an empty description",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "3",
+      "input": "description of 2501 characters (above the boundary)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "4",
+      "input": "13 tags (above the boundary)",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "5",
+      "input": "a visitor lists the marketplace while the listing is Pending",
+      "expected": "the listing is not shown",
+      "actual": "200, listed: false",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "6",
+      "input": "administrator lists the pending listings",
+      "expected": "200 and the listing is in the list",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "7",
+      "input": "reject without a reason",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "8",
+      "input": "reject with a reason",
+      "expected": "200, status Rejected",
+      "actual": "200, status Rejected",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "9",
+      "input": "review the same listing again (it is no longer Pending)",
+      "expected": "409",
+      "actual": "409",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "10",
+      "input": "owner submits the rejected listing again",
+      "expected": "200, status Pending",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "11",
+      "input": "administrator approves the listing",
+      "expected": "200, status Approved",
+      "actual": "200, status Approved",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "12",
+      "input": "a visitor lists the marketplace after the approval",
+      "expected": "the listing is shown",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "13",
+      "input": "search with a word of the description",
+      "expected": "the listing is found",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "14",
+      "input": "search with a word that no listing has",
+      "expected": "the listing is not found",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "15",
+      "input": "filter by the tag qa",
+      "expected": "the listing is found",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "16",
+      "input": "another user uses the approved listing as a template",
+      "expected": "201 and a new project",
+      "actual": "201, project true",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "17",
+      "input": "the copy has the table Customers with its 2 records",
+      "expected": "table Customers, 2 records",
+      "actual": "Customers, 2 records",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "18",
+      "input": "the owner uses the own listing as a template",
+      "expected": "400",
+      "actual": "400",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "19",
+      "input": "template with an unknown listing id",
+      "expected": "404",
+      "actual": "404",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "20",
+      "input": "a visitor without login uses the template",
+      "expected": "401",
+      "actual": "401",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "21",
+      "input": "administrator deletes the owner of the approved listing",
+      "expected": "200",
+      "actual": "200 {\"ok\":true,\"deleted\":{\"projects\":1}}",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "22",
+      "input": "a visitor lists the marketplace after the deletion",
+      "expected": "the listing is no longer shown",
+      "actual": "200",
+      "pass": true
+    },
+    {
+      "id": "BB-10",
+      "step": "23",
+      "input": "the copy of the other user is not deleted with the owner of the template",
+      "expected": "200",
+      "actual": "200",
+      "pass": true
+    }
+  ]
+}

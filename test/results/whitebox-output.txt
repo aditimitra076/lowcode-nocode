@@ -1,0 +1,102 @@
+
+> test:white
+> node --test --experimental-test-coverage --test-coverage-include=**/backend/utils/*.js --test-coverage-include=**/backend/middleware/*.js --test-coverage-include=**/backend/controllers/projectController.js --test-coverage-include=**/backend/controllers/adminController.js whitebox.test.mjs
+
+✔ WB-01 coerceRecordData: statement coverage with one valid value of every field type (2.1015ms)
+✔ WB-02 coerceRecordData: every error branch and the empty-value branches (0.4502ms)
+✔ WB-03 projectAccess: decision paths of isOwner, canView and canEdit (0.3404ms)
+✔ WB-04 validatePages: path coverage (every return path of the function) (0.5122ms)
+▶ WB-05 validatePages and countComponents: loop and recursion boundaries (depth 12/13, 2000/2001 components)
+  ✔ step 1: nesting of 11 levels is accepted (0.1994ms)
+  ✖ step 2: nesting of 12 levels is accepted (SRS: depth 12 is the upper boundary) (0.9489ms)
+  ✔ step 3: nesting of 13 levels is refused (0.1069ms)
+  ✔ step 4: 2000 components are accepted (2.4356ms)
+  ✔ step 5: 2001 components are refused (0.8476ms)
+  ✔ step 6: the count is kept over several pages (1000 + 1000 accepted, 1000 + 1001 refused) (1.7422ms)
+  ✔ step 7: countComponents counts nested nodes (0.1669ms)
+✖ WB-05 validatePages and countComponents: loop and recursion boundaries (depth 12/13, 2000/2001 components) (7.2135ms)
+✔ WB-06 middleware: requireAuth, requireAdmin, requireRole and optionalAuth paths that need no database (4.1296ms)
+▶ WB-07 adminController.deleteUser: every branch and the cascade of the deletion
+  ✔ step 1: id that is not an object id gives 404 and no database call (0.5604ms)
+  ✔ step 2: the own account gives 400 and no database call (0.1577ms)
+  ✔ step 3: user not found gives 404 and nothing is deleted (0.324ms)
+  ✔ step 4: an Admin account gives 400 and nothing is deleted (0.2621ms)
+  ✔ step 5: user without projects: profile, listings and collaborator entries are removed, the user is deleted and the deletion is logged (0.3158ms)
+  ✔ step 6: user with 2 projects and 1 table: records, table, listings and projects are deleted first (0.6266ms)
+  ✔ step 7: projects without tables: no table or record is deleted but the projects are (0.2968ms)
+  ✔ step 8: a database error is passed to next() and nothing is answered (0.211ms)
+✔ WB-07 adminController.deleteUser: every branch and the cascade of the deletion (3.5532ms)
+▶ WB-08 adminController.updateUserStatus: every branch
+  ✔ step 1: id that is not an object id gives 404 (0.2696ms)
+  ✔ step 2: status other than Active or Suspended gives 400 (also without a body) (0.1731ms)
+  ✔ step 3: the own account gives 400 (0.1095ms)
+  ✔ step 4: user not found gives 404 (0.1074ms)
+  ✔ step 5: suspending an Admin gives 400 and the status is not saved (0.1028ms)
+  ✔ step 6: suspending a Developer saves the status and logs user.suspend (0.1735ms)
+  ✔ step 7: activating a suspended Developer logs user.activate (0.1228ms)
+  ✔ step 8: an Admin account may be set to Active (only suspending is refused) (0.1087ms)
+  ✔ step 9: a database error is passed to next() (0.115ms)
+✔ WB-08 adminController.updateUserStatus: every branch (1.8683ms)
+▶ WB-09 adminController.listUsers and listLogs: filters, limits and error paths
+  ✔ step 1: listUsers returns the public fields only (no password) (0.2431ms)
+  ✔ step 2: listUsers passes a database error to next() (0.1257ms)
+  ✔ step 3: listLogs without filters uses an empty filter and the limit 300 (0.372ms)
+  ✔ step 4: the action filter is a case-insensitive pattern in which special characters are escaped (0.2785ms)
+  ✔ step 5: from and to make a date range; an invalid date is ignored (0.1496ms)
+  ✔ step 6: the actor filter keeps the entries whose actor email contains the text (case-insensitive) (0.138ms)
+  ✔ step 7: at most 200 entries are returned and an entry whose actor was deleted has actor null (0.1964ms)
+  ✔ step 8: listLogs passes a database error to next() (0.0919ms)
+✔ WB-09 adminController.listUsers and listLogs: filters, limits and error paths (2.0976ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 39
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 676.7307
+ℹ start of coverage report
+ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ file                    | line % | branch % | funcs % | uncovered lines
+ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ ..                      |        |          |         | 
+ℹ  backend                |        |          |         | 
+ℹ   controllers           |        |          |         | 
+ℹ    adminController.js   | 100.00 |   100.00 |  100.00 | 
+ℹ    projectController.js |  27.75 |   100.00 |   25.00 | 19-26 111-131 133-151 154-160 163-172 175-207 210-250 253-282 285-301 304-351 354-396 399-436
+ℹ   middleware            |        |          |         | 
+ℹ    auth.js              |  69.88 |    77.27 |  100.00 | 24-25 50-52 63-82
+ℹ    requireRole.js       | 100.00 |   100.00 |  100.00 | 
+ℹ   utils                 |        |          |         | 
+ℹ    fieldData.js         | 100.00 |    93.18 |  100.00 | 
+ℹ    projectAccess.js     |  84.85 |   100.00 |   85.71 | 23-27
+ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ all files               |  58.68 |    96.04 |   65.79 | 
+ℹ ------------------------------------------------------------------------------------------------------------------------------------------------------
+ℹ end of coverage report
+
+✖ failing tests:
+
+test at whitebox.test.mjs:114:11
+✖ step 2: nesting of 12 levels is accepted (SRS: depth 12 is the upper boundary) (0.9489ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Components can be nested at most 12 levels deep.'
+  - null
+  
+      at TestContext.<anonymous> (file:///C:/Users/Adarsh%20Pandey/Desktop/SE/lowcode-nocode/test/whitebox.test.mjs:114:111)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.start (node:internal/test_runner/test:1003:17)
+      at TestContext.test (node:internal/test_runner/test:378:20)
+      at TestContext.<anonymous> (file:///C:/Users/Adarsh%20Pandey/Desktop/SE/lowcode-nocode/test/whitebox.test.mjs:114:11)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:788:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Components can be nested at most 12 levels deep.',
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
