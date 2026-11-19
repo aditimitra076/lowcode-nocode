@@ -17,6 +17,7 @@ import DataManager from '../components/builder/DataManager';
 import { COMPONENT_DEFS } from '../builder/componentRegistry';
 import { containsNode, findNode, findParentInfo } from '../builder/treeUtils';
 import { useActivePage, useBuilderStore } from '../store/builderStore';
+import { assetUrl } from '../api/client';
 import { createListing } from '../api/marketplaceApi';
 import { uploadFile } from '../api/uploadApi';
 import './Builder.css';
@@ -438,7 +439,8 @@ export default function Builder() {
             type="button"
             className="vf-btn vf-btn-primary"
             onClick={handleSave}
-            disabled={saveStatus === 'saving'}
+            disabled={saveStatus === 'saving' || !canEditData}
+            title={canEditData ? undefined : 'You have view-only access to this project.'}
           >
             {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? 'Saved' : 'Save'}
           </button>
@@ -575,7 +577,7 @@ export default function Builder() {
               <ul className="vf-publish-shot-list">
                 {publishScreenshots.map((url) => (
                   <li key={url}>
-                    <img src={url} alt="" />
+                    <img src={assetUrl(url)} alt="" />
                     <button
                       type="button"
                       className="vf-btn"

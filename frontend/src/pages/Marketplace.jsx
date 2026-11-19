@@ -15,6 +15,7 @@ import {
   AlertCircleIcon,
 } from '../components/ui/Icons';
 import { getStoredUser } from '../api/authApi';
+import { assetUrl } from '../api/client';
 import { fetchListing, fetchListings } from '../api/marketplaceApi';
 import './Marketplace.css';
 import { initials } from '../utils/text';
@@ -412,11 +413,11 @@ export default function Marketplace() {
                         <a
                           key={url}
                           className="vf-market-shot"
-                          href={url}
+                          href={assetUrl(url)}
                           target="_blank"
                           rel="noreferrer"
                         >
-                          <img src={url} alt="" />
+                          <img src={assetUrl(url)} alt="" />
                         </a>
                       ))}
                     </div>

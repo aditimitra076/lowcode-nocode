@@ -1,4 +1,4 @@
-import { NETWORK_ERROR } from './client';
+import { NETWORK_ERROR, apiUrl } from './client';
 import { clearSession, getAuthToken, setSession } from './session';
 
 export { clearSession, getAuthToken, getStoredUser, isAuthenticated, setSession } from './session';
@@ -6,7 +6,7 @@ export { clearSession, getAuthToken, getStoredUser, isAuthenticated, setSession 
 async function authRequest(path, body) {
   let response;
   try {
-    response = await fetch(path, {
+    response = await fetch(apiUrl(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -57,7 +57,7 @@ export async function fetchCurrentUser() {
   if (!token) return null;
 
   try {
-    const response = await fetch('/api/auth/me', {
+    const response = await fetch(apiUrl('/api/auth/me'), {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -86,7 +86,7 @@ async function profileRequest(method, body) {
 
   let response;
   try {
-    response = await fetch('/api/auth/profile', {
+    response = await fetch(apiUrl('/api/auth/profile'), {
       method,
       headers: {
         'Content-Type': 'application/json',

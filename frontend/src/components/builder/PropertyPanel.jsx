@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { COMPONENT_DEFS } from '../../builder/componentRegistry';
 import { countNodes, findNode } from '../../builder/treeUtils';
 import { useActivePage, useBuilderStore } from '../../store/builderStore';
+import { assetUrl } from '../../api/client';
 import { fetchTables } from '../../api/tableApi';
 import { uploadFile } from '../../api/uploadApi';
 
@@ -62,7 +63,7 @@ function UploadSrcField({ field, nodeId, value, onChange, accept, buttonLabel, s
         </label>
       </div>
       {stringValue && isImageUrl(stringValue) ? (
-        <img className="vf-upload-preview" src={stringValue} alt="" />
+        <img className="vf-upload-preview" src={assetUrl(stringValue)} alt="" />
       ) : null}
       {stringValue && !isImageUrl(stringValue) ? (
         <a className="vf-field-help" href={stringValue} target="_blank" rel="noreferrer">

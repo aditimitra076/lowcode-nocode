@@ -50,6 +50,11 @@ function pushHistory(state) {
   return { past, future: [] };
 }
 
+// Owners and Editors may change the project; Viewers may only open and preview it.
+function canModify(state) {
+  return state.isOwner || state.accessRole === 'Editor';
+}
+
 function emptyProject(projectName = 'Untitled Project') {
   const page = createPage('Home', '/');
   return {
@@ -117,6 +122,7 @@ export const useBuilderStore = create((set, get) => ({
 
   addPage() {
     set((state) => {
+      if (!canModify(state)) return state;
       const page = createPage(`Page ${state.pages.length + 1}`, `/page-${state.pages.length + 1}`);
       return {
         ...pushHistory(state),
@@ -128,7 +134,7 @@ export const useBuilderStore = create((set, get) => ({
   },
 
   renamePage(pageId, patch = {}) {
-    set((state) => ({
+    set((state) => (!canModify(state) ? state : {
       pages: state.pages.map((page) => {
         if (page.id !== pageId) return page;
         return {
@@ -148,7 +154,7 @@ export const useBuilderStore = create((set, get) => ({
 
   removePage(pageId) {
     set((state) => {
-      if (state.pages.length <= 1) return state;
+      if (!canModify(state) || state.pages.length <= 1) return state;
       const pages = state.pages.filter((page) => page.id !== pageId);
       const activePageId =
         state.activePageId === pageId ? pages[0].id : state.activePageId;
@@ -191,7 +197,7 @@ export const useBuilderStore = create((set, get) => ({
     clearPropsBatch();
     set((state) => {
       const past = state.past || [];
-      if (!past.length) return state;
+      if (!canModify(state) || !past.length) return state;
       const previous = past[past.length - 1];
       return {
         pages: previous.pages,
@@ -209,7 +215,7 @@ export const useBuilderStore = create((set, get) => ({
     clearPropsBatch();
     set((state) => {
       const future = state.future || [];
-      if (!future.length) return state;
+      if (!canModify(state) || !future.length) return state;
       const next = future[future.length - 1];
       return {
         pages: next.pages,
@@ -226,7 +232,7 @@ export const useBuilderStore = create((set, get) => ({
     const node = createComponent(type);
     set((state) => {
       const page = activePageOf(state);
-      if (!page) return state;
+      if (!page || !canModify(state)) return state;
       if (parentId !== 'root' && !findNode(page.components, parentId)) return state;
       const targetIndex =
         index ?? (findNode(page.components, parentId)?.children?.length ?? page.components.length);
@@ -248,7 +254,7 @@ export const useBuilderStore = create((set, get) => ({
   moveComponent(id, parentId, index) {
     set((state) => {
       const page = activePageOf(state);
-      if (!page) return state;
+      if (!page || !canModify(state)) return state;
       const node = findNode(page.components, id);
       if (!node) return state;
       if (parentId === id || containsNode(node, parentId)) return state;
@@ -272,7 +278,7 @@ export const useBuilderStore = create((set, get) => ({
   deleteComponent(id) {
     set((state) => {
       const page = activePageOf(state);
-      if (!page) return state;
+      if (!page || !canModify(state)) return state;
       const { nodes, removed } = removeNode(page.components, id);
       if (!removed) return state;
       return {
@@ -289,7 +295,7 @@ export const useBuilderStore = create((set, get) => ({
   duplicateComponent(id) {
     set((state) => {
       const page = activePageOf(state);
-      if (!page) return state;
+      if (!page || !canModify(state)) return state;
       const info = findParentInfo(page.components, id);
       const source = findNode(page.components, id);
       if (!info || !source) return state;
@@ -313,6 +319,7 @@ export const useBuilderStore = create((set, get) => ({
 
   updateProps(id, patch) {
     set((state) => {
+      if (!canModify(state)) return state;
       let history = {};
       if (!propsBatchOpen) {
         history = pushHistory(state);
@@ -338,6 +345,7 @@ export const useBuilderStore = create((set, get) => ({
 
   updateStyle(id, patch) {
     set((state) => {
+      if (!canModify(state)) return state;
       let history = {};
       if (!styleBatchOpen) {
         history = pushHistory(state);
@@ -481,7 +489,10 @@ export const useBuilderStore = create((set, get) => ({
   },
 
   async saveProject() {
-    const { projectId, projectName, pages } = get();
+    const { projectId, projectName, pages, isOwner, accessRole } = get();
+    if (!canModify({ isOwner, accessRole })) {
+      return { ok: false, message: 'You have view-only access to this project.' };
+    }
     const name = (projectName || '').trim() || 'Untitled Project';
     set({ projectName: name });
 
@@ -494,7 +505,9 @@ export const useBuilderStore = create((set, get) => ({
       ? await updateProject(projectId, payload)
       : await createProject(payload);
 
-    if (!result.ok && result.status === 404) {
+    // A 404 means the saved project is gone. Only its owner may start over with a new one: a
+    // collaborator who was removed (or whose project was deleted) must not get a private copy.
+    if (!result.ok && result.status === 404 && isOwner) {
       result = await createProject(payload);
     }
 

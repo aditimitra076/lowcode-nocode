@@ -2,6 +2,20 @@ import { getAuthToken } from './session';
 
 export const NETWORK_ERROR = 'Could not reach the API server. Is the backend running?';
 
+// Empty in development (the Vite proxy forwards /api). Set VITE_API_URL to the backend's public
+// address when the built frontend is served from a different host than the API.
+export const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
+/** Full URL for an API path such as /api/projects. */
+export function apiUrl(path) {
+  return /^https?:\/\//i.test(path) ? path : `${API_BASE}${path}`;
+}
+
+/** Full URL for an uploaded file (stored as /uploads/<name>) so images load from the API host. */
+export function assetUrl(url) {
+  return typeof url === 'string' && url.startsWith('/uploads/') ? `${API_BASE}${url}` : url;
+}
+
 /**
  * Calls the REST API with the login token and returns { ok, status, data } or { ok: false, status, message }.
  * Request bodies that are FormData are sent as they are; everything else is sent as JSON.
@@ -20,7 +34,7 @@ export async function request(path, options = {}, messages = {}) {
 
   let response;
   try {
-    response = await fetch(path, { ...options, headers });
+    response = await fetch(apiUrl(path), { ...options, headers });
   } catch {
     return { ok: false, status: 0, message: NETWORK_ERROR };
   }

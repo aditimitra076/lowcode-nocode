@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { COMPONENT_DEFS, resolveLayoutStyle } from './componentRegistry';
+import { assetUrl } from '../api/client';
 import { fetchRecords, fetchTables, submitPublicForm } from '../api/tableApi';
 import { useBuilderStore } from '../store/builderStore';
 import { inputTypeForField } from './fieldTypes';
@@ -372,7 +373,7 @@ export default function ComponentBody({ node, children }) {
         >
           {props.src ? (
             <img
-              src={props.src}
+              src={assetUrl(props.src)}
               alt={props.alt || ''}
               style={containedImageStyle}
               draggable={false}

@@ -12,6 +12,7 @@ import publicFormRoutes from "./routes/publicFormRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import { UPLOADS_DIR } from "./controllers/uploadController.js";
+import { parseClientOrigins } from "./utils/corsOrigins.js";
 
 // Windows/ISP DNS often fails Atlas SRV hostnames (ENOTFOUND).
 // Prefer public resolvers for both resolve* and a custom Mongo lookup.
@@ -60,7 +61,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+    origin: parseClientOrigins(process.env.CLIENT_ORIGIN),
     credentials: true,
   })
 );
