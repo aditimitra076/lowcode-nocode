@@ -3,7 +3,35 @@ import { createId } from './treeUtils';
 // Component catalogue for the visual builder (SRS FR-11).
 // Every definition declares its default content/style and the property-panel fields.
 
+// Value is the CSS font-family stack that gets saved on the component. The web fonts are loaded
+// from Google Fonts in index.html; the system fonts need no download.
+export const FONT_OPTIONS = [
+  { value: '', label: 'Default' },
+  { value: 'Arial, Helvetica, sans-serif', label: 'Arial' },
+  { value: 'Verdana, Geneva, sans-serif', label: 'Verdana' },
+  { value: "'Trebuchet MS', Helvetica, sans-serif", label: 'Trebuchet MS' },
+  { value: "Georgia, 'Times New Roman', serif", label: 'Georgia' },
+  { value: "'Times New Roman', Times, serif", label: 'Times New Roman' },
+  { value: "'Courier New', Courier, monospace", label: 'Courier New' },
+  { value: "'Inter', system-ui, sans-serif", label: 'Inter' },
+  { value: "'Roboto', sans-serif", label: 'Roboto' },
+  { value: "'Poppins', sans-serif", label: 'Poppins' },
+  { value: "'Montserrat', sans-serif", label: 'Montserrat' },
+  { value: "'Playfair Display', serif", label: 'Playfair Display' },
+  { value: "'Lora', serif", label: 'Lora' },
+  { value: "'Dancing Script', cursive", label: 'Dancing Script' },
+];
+
+const FONT_FIELD = {
+  key: 'fontFamily',
+  label: 'Font',
+  type: 'select',
+  options: FONT_OPTIONS,
+  section: 'style',
+};
+
 const TEXT_STYLE_FIELDS = [
+  FONT_FIELD,
   { key: 'color', label: 'Text colour', type: 'color', section: 'style' },
   { key: 'fontSize', label: 'Font size', type: 'text', section: 'style' },
   {
@@ -108,7 +136,7 @@ export const COMPONENT_DEFS = {
     icon: 'image',
     isContainer: false,
     defaults: {
-      props: { src: '', alt: 'Project image', align: 'left' },
+      props: { src: '', alt: 'Project image', align: 'left', fit: 'cover', zoom: '100' },
       style: {
         width: '100%',
         maxWidth: '420px',
@@ -130,7 +158,35 @@ export const COMPONENT_DEFS = {
         ],
         section: 'content',
       },
-      { key: 'width', label: 'Width', type: 'text', section: 'style' },
+      {
+        key: 'zoom',
+        label: 'Zoom',
+        type: 'range',
+        min: 50,
+        max: 300,
+        step: 5,
+        unit: '%',
+        defaultValue: 100,
+        section: 'content',
+      },
+      {
+        key: 'fit',
+        label: 'Fit inside the frame',
+        type: 'select',
+        options: [
+          { value: 'cover', label: 'Fill and crop (cover)' },
+          { value: 'contain', label: 'Show whole image (contain)' },
+          { value: 'fill', label: 'Stretch' },
+        ],
+        section: 'content',
+      },
+      { key: 'width', label: 'Width (e.g. 300px or 50%)', type: 'text', section: 'style' },
+      {
+        key: 'height',
+        label: 'Height (e.g. 200px, empty = automatic)',
+        type: 'text',
+        section: 'style',
+      },
       { key: 'maxWidth', label: 'Max width', type: 'text', section: 'style' },
       { key: 'borderRadius', label: 'Corner radius', type: 'text', section: 'style' },
       { key: 'padding', label: 'Padding', type: 'text', section: 'style' },
@@ -194,6 +250,7 @@ export const COMPONENT_DEFS = {
       { key: 'pageId', label: 'Page', type: 'page', section: 'content' },
       { key: 'background', label: 'Background', type: 'color', section: 'style' },
       { key: 'color', label: 'Text colour', type: 'color', section: 'style' },
+      FONT_FIELD,
       { key: 'fontSize', label: 'Font size', type: 'text', section: 'style' },
       { key: 'padding', label: 'Padding', type: 'text', section: 'style' },
       { key: 'borderRadius', label: 'Corner radius', type: 'text', section: 'style' },
@@ -450,9 +507,38 @@ export const COMPONENT_DEFS = {
         section: 'content',
         showWhen: 'static',
       },
+      FONT_FIELD,
       { key: 'fontSize', label: 'Font size', type: 'text', section: 'style' },
       { key: 'color', label: 'Text colour', type: 'color', section: 'style' },
       { key: 'padding', label: 'Padding', type: 'text', section: 'style' },
+      ...LAYOUT_STYLE_FIELDS,
+    ],
+  },
+  search: {
+    label: 'Search',
+    icon: 'search',
+    isContainer: false,
+    defaults: {
+      props: { tableId: '', column: '', placeholder: 'Search…' },
+      style: {
+        background: '#ffffff',
+        color: '#0b0b0c',
+        fontSize: '15px',
+        borderRadius: '10px',
+        width: '100%',
+        maxWidth: '420px',
+        horizontalAlign: 'left',
+      },
+    },
+    fields: [
+      { key: 'tableId', label: 'Search in table', type: 'table', section: 'content' },
+      { key: 'column', label: 'Search in column', type: 'tableColumn', section: 'content' },
+      { key: 'placeholder', label: 'Placeholder text', type: 'text', section: 'content' },
+      FONT_FIELD,
+      { key: 'fontSize', label: 'Font size', type: 'text', section: 'style' },
+      { key: 'color', label: 'Text colour', type: 'color', section: 'style' },
+      { key: 'background', label: 'Background', type: 'color', section: 'style' },
+      { key: 'borderRadius', label: 'Corner radius', type: 'text', section: 'style' },
       ...LAYOUT_STYLE_FIELDS,
     ],
   },
@@ -524,7 +610,7 @@ export const COMPONENT_DEFS = {
 export const COMPONENT_GROUPS = [
   { label: 'Basic', types: ['heading', 'text', 'image', 'file', 'button'] },
   { label: 'Layout', types: ['container', 'row', 'column', 'spacer', 'divider'] },
-  { label: 'Data', types: ['form', 'list', 'table', 'card'] },
+  { label: 'Data', types: ['form', 'search', 'list', 'table', 'card'] },
 ];
 
 export function createComponent(type) {

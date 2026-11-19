@@ -5,8 +5,25 @@ import { fetchRecords, fetchTables, submitPublicForm } from '../api/tableApi';
 import { useBuilderStore } from '../store/builderStore';
 import { inputTypeForField } from './fieldTypes';
 
+/** Keep the records that match every active Search component bound to this table. */
+function applySearches(rows, tableId, searchQueries) {
+  const searches = Object.values(searchQueries || {}).filter(
+    (search) => search.tableId === tableId && String(search.query || '').trim(),
+  );
+  if (!searches.length) return rows;
+
+  return rows.filter((record) =>
+    searches.every((search) => {
+      const needle = String(search.query).trim().toLowerCase();
+      const values = search.column ? [record.data?.[search.column]] : Object.values(record.data || {});
+      return values.some((value) => String(value ?? '').toLowerCase().includes(needle));
+    }),
+  );
+}
+
 function useTableRecords(tableId, projectId, enabled) {
   const dataRevision = useBuilderStore((state) => state.dataRevision);
+  const searchQueries = useBuilderStore((state) => state.searchQueries);
   const [rows, setRows] = useState([]);
   const [schemaFields, setSchemaFields] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -50,7 +67,18 @@ function useTableRecords(tableId, projectId, enabled) {
     };
   }, [enabled, tableId, projectId, dataRevision]);
 
-  return { rows, schemaFields, loading, error };
+  const visibleRows = useMemo(
+    () => applySearches(rows, tableId, searchQueries),
+    [rows, tableId, searchQueries],
+  );
+
+  return {
+    rows: visibleRows,
+    schemaFields,
+    loading,
+    error,
+    emptyText: rows.length && !visibleRows.length ? 'No matching records' : 'No records yet',
+  };
 }
 
 function TablePreview({ props, projectId }) {
@@ -62,7 +90,7 @@ function TablePreview({ props, projectId }) {
     .map((column) => column.trim())
     .filter(Boolean);
   const rowCount = Math.max(0, Number(props.rows) || 0);
-  const { rows, schemaFields, loading, error } = useTableRecords(
+  const { rows, schemaFields, loading, error, emptyText } = useTableRecords(
     props.tableId,
     projectId,
     isApi,
@@ -105,7 +133,7 @@ function TablePreview({ props, projectId }) {
             ))
           ) : (
             <tr>
-              <td colSpan={keys.length}>No records yet</td>
+              <td colSpan={keys.length}>{emptyText}</td>
             </tr>
           )}
         </tbody>
@@ -140,7 +168,7 @@ function TablePreview({ props, projectId }) {
 }
 
 function BoundList({ props, projectId, style }) {
-  const { rows, loading, error } = useTableRecords(props.tableId, projectId, true);
+  const { rows, loading, error, emptyText } = useTableRecords(props.tableId, projectId, true);
   const fieldKey = props.itemField || 'name';
 
   if (!props.tableId) {
@@ -148,7 +176,7 @@ function BoundList({ props, projectId, style }) {
   }
   if (loading) return <div className="vf-el-placeholder">Loading list…</div>;
   if (error) return <div className="vf-el-placeholder">{error}</div>;
-  if (!rows.length) return <div className="vf-el-placeholder">No records yet</div>;
+  if (!rows.length) return <div className="vf-el-placeholder">{emptyText}</div>;
 
   return (
     <ul className="vf-el-list" style={style}>
@@ -160,7 +188,7 @@ function BoundList({ props, projectId, style }) {
 }
 
 function BoundCards({ props, projectId, style, children }) {
-  const { rows, loading, error } = useTableRecords(props.tableId, projectId, true);
+  const { rows, loading, error, emptyText } = useTableRecords(props.tableId, projectId, true);
   const titleField = props.titleField || 'name';
   const textField = props.textField || 'email';
 
@@ -169,7 +197,7 @@ function BoundCards({ props, projectId, style, children }) {
   }
   if (loading) return <div className="vf-el-placeholder">Loading cards…</div>;
   if (error) return <div className="vf-el-placeholder">{error}</div>;
-  if (!rows.length) return <div className="vf-el-placeholder">No records yet</div>;
+  if (!rows.length) return <div className="vf-el-placeholder">{emptyText}</div>;
 
   return (
     <div className="vf-el-card-stack" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -180,6 +208,44 @@ function BoundCards({ props, projectId, style, children }) {
           {children}
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * A search box tied to one column of a data table. While previewing, whatever is typed filters
+ * every Table, List and Card on the page that is bound to the same table.
+ */
+function SearchBar({ node, style }) {
+  const previewing = useBuilderStore((state) => state.previewing);
+  const setSearchQuery = useBuilderStore((state) => state.setSearchQuery);
+  const { tableId = '', column = '', placeholder = 'Search…' } = node.props || {};
+  const [value, setValue] = useState('');
+
+  useEffect(() => {
+    const query = value.trim();
+    setSearchQuery(node.id, previewing && tableId && query ? { tableId, column, query } : null);
+  }, [node.id, tableId, column, value, previewing, setSearchQuery]);
+
+  // Remove this bar's filter when the bar is deleted or the page changes.
+  useEffect(() => () => setSearchQuery(node.id, null), [node.id, setSearchQuery]);
+
+  const { background, color, borderRadius, fontSize, fontFamily, ...box } = style;
+
+  return (
+    <div className="vf-el vf-el-search" style={{ ...box, boxSizing: 'border-box' }}>
+      <input
+        type="search"
+        value={value}
+        placeholder={placeholder}
+        aria-label={placeholder || 'Search'}
+        disabled={!previewing}
+        onChange={(event) => setValue(event.target.value)}
+        style={{ background, color, borderRadius, fontSize, fontFamily }}
+      />
+      {!previewing && !tableId ? (
+        <small className="vf-el-search-hint">Choose a data table and column in properties.</small>
+      ) : null}
     </div>
   );
 }
@@ -351,13 +417,26 @@ export default function ComponentBody({ node, children }) {
       const justify =
         align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
       const imageStyle = resolveLayoutStyle({ ...style, horizontalAlign: undefined });
+      const fit = ['cover', 'contain', 'fill'].includes(props.fit) ? props.fit : 'cover';
+      const zoom = Math.min(300, Math.max(10, Number(props.zoom) || 100));
+      const hasHeight = Boolean(imageStyle.height) && imageStyle.height !== 'auto';
+      // The frame has the chosen width and height; the picture fills it and is scaled by the zoom.
       const containedImageStyle = {
         ...imageStyle,
         display: 'block',
         maxWidth: '100%',
         width: imageStyle.width || '100%',
-        height: 'auto',
+        height: hasHeight ? imageStyle.height : 'auto',
+        overflow: 'hidden',
         boxSizing: 'border-box',
+      };
+      const pictureStyle = {
+        display: 'block',
+        width: '100%',
+        height: hasHeight ? '100%' : 'auto',
+        objectFit: fit,
+        transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
+        transformOrigin: 'center center',
       };
       return (
         <div
@@ -372,12 +451,14 @@ export default function ComponentBody({ node, children }) {
           }}
         >
           {props.src ? (
-            <img
-              src={assetUrl(props.src)}
-              alt={props.alt || ''}
-              style={containedImageStyle}
-              draggable={false}
-            />
+            <div style={containedImageStyle}>
+              <img
+                src={assetUrl(props.src)}
+                alt={props.alt || ''}
+                style={pictureStyle}
+                draggable={false}
+              />
+            </div>
           ) : (
             <div className="vf-el-placeholder" style={containedImageStyle}>
               Image — set a URL in the property panel
@@ -578,6 +659,8 @@ export default function ComponentBody({ node, children }) {
           <TablePreview props={props} projectId={projectId} />
         </div>
       );
+    case 'search':
+      return <SearchBar node={node} style={layoutStyle} />;
     case 'form':
       return (
         <BoundForm node={node} style={{ ...layoutStyle, boxSizing: 'border-box' }}>

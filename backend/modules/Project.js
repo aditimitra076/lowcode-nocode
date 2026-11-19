@@ -16,6 +16,7 @@ export const COMPONENT_TYPES = [
   'list',
   'table',
   'form',
+  'search',
 ]
 
 export const COLLABORATOR_ROLES = ['Editor', 'Viewer']

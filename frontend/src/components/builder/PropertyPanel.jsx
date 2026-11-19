@@ -185,6 +185,73 @@ function Field({ field, nodeId, value, onChange, tables, pages }) {
     );
   }
 
+  if (field.type === 'tableColumn') {
+    const columnTable = tables.find((item) => item.id === (field.tableId || ''));
+
+    if (!columnTable) {
+      return (
+        <div className="vf-field">
+          <label>{field.label}</label>
+          <span className="vf-field-help">Choose a data table first.</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="vf-field">
+        <label htmlFor={inputId}>{field.label}</label>
+        <select
+          id={inputId}
+          value={stringValue}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          <option value="">All columns</option>
+          {(columnTable.fields || []).map((item) => (
+            <option key={item.key} value={item.key}>
+              {item.label || item.key} ({item.key})
+            </option>
+          ))}
+        </select>
+        <span className="vf-field-help">
+          Filters every Table, List and Card on this page that uses “{columnTable.name}”. Try it in
+          Preview.
+        </span>
+      </div>
+    );
+  }
+
+  if (field.type === 'range') {
+    const min = field.min ?? 0;
+    const max = field.max ?? 100;
+    const current = Number(stringValue) || field.defaultValue || min;
+    return (
+      <div className="vf-field">
+        <label htmlFor={inputId}>
+          {field.label}: {current}
+          {field.unit || ''}
+        </label>
+        <input
+          id={inputId}
+          type="range"
+          min={min}
+          max={max}
+          step={field.step || 1}
+          value={current}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        {Number(current) !== (field.defaultValue ?? min) ? (
+          <button
+            type="button"
+            className="vf-mini-btn"
+            onClick={() => onChange(String(field.defaultValue ?? min))}
+          >
+            Reset
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
   if (field.type === 'tableFields') {
     const tableId = field.tableId || '';
     const table = tables.find((item) => item.id === tableId);
@@ -274,7 +341,11 @@ function Field({ field, nodeId, value, onChange, tables, pages }) {
             const value = typeof option === 'string' ? option : option.value;
             const label = typeof option === 'string' ? option : option.label;
             return (
-              <option key={value} value={value}>
+              <option
+                key={value}
+                value={value}
+                style={field.key === 'fontFamily' && value ? { fontFamily: value } : undefined}
+              >
                 {label}
               </option>
             );
@@ -407,7 +478,7 @@ export default function PropertyPanel() {
 
   const renderField = (field) => {
     const enriched =
-      field.type === 'tableFields'
+      field.type === 'tableFields' || field.type === 'tableColumn'
         ? { ...field, tableId: node.props?.tableId || '' }
         : field;
 
@@ -431,6 +502,7 @@ export default function PropertyPanel() {
             updateProps(node.id, {
               tableId: value,
               ...(node.type === 'form' ? { fieldKeys: keys } : {}),
+              ...(node.type === 'search' ? { column: '' } : {}),
               ...(node.type === 'table' && table
                 ? { columns: (table.fields || []).map((item) => item.key).join(',') }
                 : {}),

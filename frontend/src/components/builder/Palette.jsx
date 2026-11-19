@@ -103,6 +103,13 @@ function PaletteIcon({ name }) {
           <path d="M3 9h18M9 9v11M15 9v11" />
         </svg>
       );
+    case 'search':
+      return (
+        <svg {...common}>
+          <circle cx="11" cy="11" r="6" />
+          <path d="M20 20l-4.2-4.2" />
+        </svg>
+      );
     case 'form':
       return (
         <svg {...common}>

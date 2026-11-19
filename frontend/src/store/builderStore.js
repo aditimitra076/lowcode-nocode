@@ -70,6 +70,7 @@ function emptyProject(projectName = 'Untitled Project') {
     accessRole: 'Owner',
     past: [],
     future: [],
+    searchQueries: {},
   };
 }
 
@@ -106,9 +107,25 @@ export const useBuilderStore = create((set, get) => ({
   past: [],
   future: [],
   dataRevision: 0,
+  // What visitors have typed into Search components while previewing:
+  // { [searchNodeId]: { tableId, column, query } }. Kept out of the saved project and the undo history.
+  searchQueries: {},
 
   setProjectName(projectName) {
     set({ projectName });
+  },
+
+  /** Set (or clear, with null) the text typed into one Search component. */
+  setSearchQuery(nodeId, entry) {
+    set((state) => {
+      const current = state.searchQueries || {};
+      if (!entry) {
+        if (!(nodeId in current)) return state;
+        const { [nodeId]: _removed, ...rest } = current;
+        return { searchQueries: rest };
+      }
+      return { searchQueries: { ...current, [nodeId]: entry } };
+    });
   },
 
   /** Notify table previews to refetch after a successful form submit. */
@@ -457,6 +474,7 @@ export const useBuilderStore = create((set, get) => ({
       accessRole: project.accessRole || (project.isOwner === false ? 'Viewer' : 'Owner'),
       past: [],
       future: [],
+      searchQueries: {},
     });
   },
 
